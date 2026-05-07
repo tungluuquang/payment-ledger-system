@@ -33,3 +33,5 @@ build/
 out/
 
 .vscode/
+
+.env
