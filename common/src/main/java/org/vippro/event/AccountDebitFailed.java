@@ -2,6 +2,7 @@ package org.vippro.event;
 
 import lombok.Builder;
 import lombok.Value;
+import org.vippro.util.CurrencyType;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -17,7 +18,7 @@ public class AccountDebitFailed {
     UUID accountId;
 
     BigDecimal amount;
-    String currency;
+    CurrencyType currency;
 
     String reason;
     String errorCode;

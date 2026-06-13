@@ -1,15 +1,18 @@
 package org.vippro.saga_service.handler;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.vippro.event.AccountDebited;
+import org.vippro.event.FraudCheckPassed;
 import org.vippro.saga_service.model.StepStatus;
 import org.vippro.saga_service.model.SagaState;
 import org.vippro.saga_service.service.OutboxCommandService;
 import org.vippro.saga_service.service.SagaStateService;
 import org.vippro.saga_service.service.ProcessedEventService;
+
+import java.util.Objects;
 
 @Component
 @RequiredArgsConstructor
@@ -29,15 +32,13 @@ public class AccountDebitedHandler implements SagaEventHandler<AccountDebited> {
     @Override
     @Transactional
     public void handle(AccountDebited event) {
-        if (!processedEventService.tryProcess(
-        event.getEventId(),
-        event.getClass().getSimpleName()
-)) {
-        return;
-    }
+        if (!processedEventService.tryProcess (
+            event.getEventId(),
+            event.getClass().getSimpleName())) {
+            return;
+        }
 
-        SagaState saga =
-                sagaStateService.find(event.getPaymentId());
+    SagaState saga = sagaStateService.find(event.getPaymentId());
 
     if (saga.getLedgerStatus() == StepStatus.COMPLETED) {
         return;
@@ -57,5 +58,14 @@ public class AccountDebitedHandler implements SagaEventHandler<AccountDebited> {
     sagaStateService.markLedgerPending(saga);
 
     outboxCommandService.requestJournalEntry(saga, event);
+    }
+
+    private void validateEvent(SagaState saga, AccountDebited event) {
+        if (!Objects.equals(saga.getSourceAccountId(), event.getAccountId())
+                || !Objects.equals(saga.getCorrelationId(), event.getCorrelationId())) {
+            throw new IllegalStateException(
+                    "AccountDebited does not match saga"
+            );
+        }
     }
 }

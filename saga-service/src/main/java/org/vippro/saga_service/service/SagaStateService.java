@@ -194,4 +194,15 @@ public class SagaStateService {
         sagaStateRepository.save(saga);
     }
 
+    @Transactional
+    public void failFraud(SagaState saga, String reason) {
+        if (saga.getFraudStatus() == StepStatus.FAILED
+                || saga.getFraudStatus() == StepStatus.COMPLETED) {
+            return;
+        }
+
+        saga.setFraudStatus(StepStatus.FAILED);
+        saga.setLastError(reason);
+        sagaStateRepository.save(saga);
+    }
 }

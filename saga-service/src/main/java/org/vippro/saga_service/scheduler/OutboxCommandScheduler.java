@@ -1,11 +1,13 @@
 package org.vippro.saga_service.scheduler;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.vippro.messaging.CommandEnvelope;
 import org.vippro.saga_service.model.OutboxCommand;
 import org.vippro.saga_service.repository.OutboxCommandRepository;
 import org.vippro.saga_service.model.OutboxStatus;
@@ -18,6 +20,7 @@ import java.util.List;
 public class OutboxCommandScheduler {
     private final OutboxCommandRepository outbox;
     private final KafkaTemplate<String, String> kafkaTemplate;
+    private final ObjectMapper objectMapper;
 
     private static final int BATCH_SIZE = 100;
 
@@ -35,11 +38,28 @@ public class OutboxCommandScheduler {
             try {
                 cmd.setStatus(OutboxStatus.PROCESSING);
                 cmd.setProcessingStartedAt(now);
+//
+//                kafkaTemplate.send(cmd.getTopic(),
+//                        cmd.getSagaId().toString(),
+//                        cmd.getPayload()
+//                        ).get();
+//
 
-                kafkaTemplate.send(cmd.getTopic(), 
+                CommandEnvelope envelope = CommandEnvelope.builder()
+                        .commandId(cmd.getId())
+                        .sagaId(cmd.getSagaId())
+                        .commandType(cmd.getCommandType())
+                        .payload(objectMapper.readTree(cmd.getPayload()))
+                        .createdAt(cmd.getCreatedAt())
+                        .build();
+
+                String message = objectMapper.writeValueAsString(envelope);
+
+                kafkaTemplate.send(
+                        cmd.getTopic(),
                         cmd.getSagaId().toString(),
-                        cmd.getPayload()
-                        ).get();
+                        message
+                ).get();
 
                 cmd.setStatus(OutboxStatus.PUBLISHED);
                 cmd.setPublishedAt(Instant.now());

@@ -53,22 +53,22 @@ public class OutboxCommandService {
 
         saveOutbox(
                 saga.getSagaId(),
-                "account-debit-commands",
+                "account-commands",
                 AccountDebitRequestedCommand.class.getSimpleName(),
                 cmd
         );
     }
 
-    public void requestCancelPayment(UUID sagaId, PaymentCancelled event) {
+    public void requestCancelPayment(SagaState saga, String reason) {
         CancelPaymentCommand cmd = CancelPaymentCommand.builder()
-                .paymentId(event.getPaymentId())
-                .correlationId(event.getCorrelationId())
+                .paymentId(saga.getPaymentId())
+                .correlationId(saga.getCorrelationId())
                 .cancelledAt(Instant.now())
-                .reason(event.getReason())
+                .reason(reason)
                 .build();
 
         saveOutbox(
-                sagaId,
+                saga.getSagaId(),
                 "payment-commands",
                 CancelPaymentCommand.class.getSimpleName(),
                 cmd
