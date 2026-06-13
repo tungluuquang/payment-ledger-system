@@ -10,8 +10,8 @@ import java.util.UUID;
 @Value
 @Builder
 public class InitiatePaymentCommand {
-    UUID customerId;
-    UUID merchantId;
+    UUID sourceAccountId;
+    UUID destinationAccountId;
     UUID correlationId;
 
     BigDecimal amount;

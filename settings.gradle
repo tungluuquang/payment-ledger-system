@@ -18,3 +18,4 @@ include 'services:webservice'
 rootProject.name = 'payment-ledger-system'
 
 include 'common'
+include 'saga-service'

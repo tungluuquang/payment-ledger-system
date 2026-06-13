@@ -12,7 +12,5 @@ public class CompletePaymentCommand {
     UUID paymentId;
 
     UUID correlationId;
-    UUID idempotencyKey;
-
     Instant completedAt;
 }

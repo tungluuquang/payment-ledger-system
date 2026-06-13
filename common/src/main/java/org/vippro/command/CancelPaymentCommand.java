@@ -12,7 +12,6 @@ public class CancelPaymentCommand {
     UUID paymentId;
 
     UUID correlationId;
-    UUID idempotencyKey;
-
     Instant cancelledAt;
+    String reason;
 }

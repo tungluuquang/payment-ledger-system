@@ -12,18 +12,15 @@ import java.util.UUID;
 @Builder
 public class PaymentInitiated {
     UUID eventId;
-
     UUID paymentId;
 
-    UUID correlationId;
-
-    UUID idempotencyKey;
-
-    Instant occurredAt;
+    UUID sourceAccountId;
+    UUID destinationAccountId;
 
     BigDecimal amount;
     CurrencyType currency;
 
-    UUID customerId;
-    UUID merchantId;
+    UUID correlationId;
+    UUID idempotencyKey;
+    Instant occurredAt;
 }
