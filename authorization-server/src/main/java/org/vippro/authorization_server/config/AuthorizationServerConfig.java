@@ -32,6 +32,8 @@ import org.springframework.security.oauth2.server.authorization.token.OAuth2Toke
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -54,6 +56,7 @@ public class AuthorizationServerConfig {
 
         http.getConfigurer(OAuth2AuthorizationServerConfigurer.class)
                 .oidc(Customizer.withDefaults());
+        http.cors(Customizer.withDefaults());
         http.exceptionHandling(exceptions -> exceptions
                 .defaultAuthenticationEntryPointFor(
                         new LoginUrlAuthenticationEntryPoint("/login"),
@@ -119,7 +122,57 @@ public class AuthorizationServerConfig {
                         .build())
                 .build();
 
-        return new InMemoryRegisteredClientRepository(registeredClient);
+        AuthorizationServerProperties.Spa spa = properties.spa();
+        RegisteredClient spaClient = RegisteredClient
+                .withId(UUID.randomUUID().toString())
+                .clientId(spa.clientId())
+                .clientAuthenticationMethod(ClientAuthenticationMethod.NONE)
+                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
+                .redirectUri(spa.redirectUri())
+                .scope(OidcScopes.OPENID)
+                .scope(OidcScopes.PROFILE)
+                .scope("payment.read")
+                .scope("payment.write")
+                .scope("account.read")
+                .scope("account.write")
+                .scope("user.read")
+                .scope("user.write")
+                .clientSettings(ClientSettings.builder()
+                        .requireAuthorizationConsent(false)
+                        .requireProofKey(true)
+                        .build())
+                .tokenSettings(TokenSettings.builder()
+                        .accessTokenTimeToLive(Duration.ofMinutes(15))
+                        .refreshTokenTimeToLive(Duration.ofDays(7))
+                        .reuseRefreshTokens(false)
+                        .build())
+                .build();
+
+        return new InMemoryRegisteredClientRepository(
+                registeredClient,
+                spaClient
+        );
+    }
+
+    @Bean
+    UrlBasedCorsConfigurationSource corsConfigurationSource(
+            AuthorizationServerProperties properties
+    ) {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(List.of(properties.spa().origin()));
+        configuration.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/oauth2/**", configuration);
+        source.registerCorsConfiguration(
+                "/.well-known/**",
+                configuration
+        );
+        return source;
     }
 
     @Bean

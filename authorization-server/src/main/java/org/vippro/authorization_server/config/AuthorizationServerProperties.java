@@ -5,7 +5,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "authorization")
 public record AuthorizationServerProperties(
         String issuer,
-        Client client
+        Client client,
+        Spa spa
 ) {
     public record Client(
             String id,
@@ -15,4 +16,10 @@ public record AuthorizationServerProperties(
     ) {
     }
 
+    public record Spa(
+            String clientId,
+            String redirectUri,
+            String origin
+    ) {
+    }
 }

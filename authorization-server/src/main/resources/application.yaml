@@ -22,6 +22,10 @@ authorization:
     secret: ${AUTH_CLIENT_SECRET:change-me}
     redirect-uri: ${AUTH_REDIRECT_URI:http://127.0.0.1:8080/login/oauth2/code/payment-ledger}
     post-logout-redirect-uri: ${AUTH_POST_LOGOUT_REDIRECT_URI:http://127.0.0.1:8080/}
+  spa:
+    client-id: ${AUTH_SPA_CLIENT_ID:payment-ledger-spa}
+    redirect-uri: ${AUTH_SPA_REDIRECT_URI:http://localhost:5173/callback}
+    origin: ${AUTH_SPA_ORIGIN:http://localhost:5173}
 
 eureka:
   client:
