@@ -28,6 +28,9 @@ public class PaymentRecord {
     @Column(name = "payment_id", nullable = false, updatable = false)
     private UUID paymentId;
 
+    @Column(name = "requester_user_id", nullable = false, updatable = false)
+    private UUID requesterUserId;
+
     @Column(name = "source_account_id", nullable = false, updatable = false)
     private UUID sourceAccountId;
 

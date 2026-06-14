@@ -226,6 +226,7 @@ class PaymentProjectionServiceIntegrationTest {
         return PaymentInitiated.builder()
                 .eventId(eventId)
                 .paymentId(data.paymentId())
+                .requesterUserId(UUID.randomUUID())
                 .sourceAccountId(data.sourceAccountId())
                 .destinationAccountId(data.destinationAccountId())
                 .amount(data.amount())

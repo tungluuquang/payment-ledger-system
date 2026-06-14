@@ -56,7 +56,7 @@ class SagaEventValidationTest {
         assertThrows(IllegalStateException.class, () -> handler.handle(event));
 
         verify(sagaStateService, never()).completeDebit(saga, event.getTransactionId());
-        verify(outboxCommandService, never()).requestJournalEntry(saga, event);
+        verify(outboxCommandService, never()).requestAccountCredit(saga);
     }
 
     @Test
@@ -149,7 +149,7 @@ class SagaEventValidationTest {
         assertThrows(IllegalStateException.class, () -> handler.handle(event));
 
         verify(sagaStateService, never()).completeDebit(saga, event.getTransactionId());
-        verify(outboxCommandService, never()).requestJournalEntry(saga, event);
+        verify(outboxCommandService, never()).requestAccountCredit(saga);
     }
 
     @Test
@@ -237,8 +237,10 @@ class SagaEventValidationTest {
                 .paymentState(PaymentState.PROCESSING)
                 .fraudStatus(StepStatus.COMPLETED)
                 .debitStatus(StepStatus.PENDING)
+                .creditStatus(StepStatus.NOT_STARTED)
                 .ledgerStatus(StepStatus.NOT_STARTED)
                 .debitReversalStatus(StepStatus.NOT_STARTED)
+                .creditReversalStatus(StepStatus.NOT_STARTED)
                 .build();
     }
 }

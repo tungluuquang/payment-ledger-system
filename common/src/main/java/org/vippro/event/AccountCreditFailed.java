@@ -12,18 +12,14 @@ import java.util.UUID;
 @Value
 @Builder
 @Jacksonized
-public class PaymentInitiated {
+public class AccountCreditFailed {
     UUID eventId;
     UUID paymentId;
-    UUID requesterUserId;
-
-    UUID sourceAccountId;
-    UUID destinationAccountId;
-
+    UUID accountId;
     BigDecimal amount;
     CurrencyType currency;
-
     UUID correlationId;
-    UUID idempotencyKey;
+    String errorCode;
+    String reason;
     Instant occurredAt;
 }

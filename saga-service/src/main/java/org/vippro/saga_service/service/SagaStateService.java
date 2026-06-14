@@ -25,6 +25,7 @@ public class SagaStateService {
                 .orElseGet(() -> sagaStateRepository.save(
                         SagaState.builder()
                                 .paymentId(event.getPaymentId())
+                                .requesterUserId(event.getRequesterUserId())
                                 .sourceAccountId(event.getSourceAccountId())
                                 .destinationAccountId(event.getDestinationAccountId())
                                 .amount(event.getAmount())
@@ -33,8 +34,10 @@ public class SagaStateService {
                                 .paymentState(PaymentState.PROCESSING)
                                 .fraudStatus(StepStatus.NOT_STARTED)
                                 .debitStatus(StepStatus.NOT_STARTED)
+                                .creditStatus(StepStatus.NOT_STARTED)
                                 .ledgerStatus(StepStatus.NOT_STARTED)
                                 .debitReversalStatus(StepStatus.NOT_STARTED)
+                                .creditReversalStatus(StepStatus.NOT_STARTED)
                                 .build()
                 ));
     }
@@ -181,9 +184,10 @@ public class SagaStateService {
             return;
         }
 
-        if (saga.getDebitStatus() != StepStatus.COMPLETED) {
+        if (saga.getDebitStatus() != StepStatus.COMPLETED
+                || saga.getCreditStatus() != StepStatus.COMPLETED) {
             throw new IllegalStateException(
-                    "Cannot move to ledger before debit completed"
+                    "Cannot move to ledger before debit and credit completed"
             );
         }
 
@@ -230,6 +234,66 @@ public class SagaStateService {
         saga.setDebitStatus(StepStatus.COMPLETED);
         saga.setDebitTransactionId(transactionId);
 
+        sagaStateRepository.save(saga);
+    }
+
+    @Transactional
+    public void markCreditPending(SagaState saga) {
+        if (saga.getDebitStatus() != StepStatus.COMPLETED) {
+            throw new IllegalStateException(
+                    "Cannot credit destination before debit completed"
+            );
+        }
+        saga.setCreditStatus(StepStatus.PENDING);
+        sagaStateRepository.save(saga);
+    }
+
+    @Transactional
+    public void completeCredit(SagaState saga, UUID transactionId) {
+        saga.setCreditStatus(StepStatus.COMPLETED);
+        saga.setCreditTransactionId(transactionId);
+        sagaStateRepository.save(saga);
+    }
+
+    @Transactional
+    public void failCredit(SagaState saga, String reason) {
+        if (saga.getCreditStatus() == StepStatus.COMPLETED
+                || saga.getCreditStatus() == StepStatus.FAILED) {
+            return;
+        }
+        saga.setCreditStatus(StepStatus.FAILED);
+        saga.setLastError(reason);
+        sagaStateRepository.save(saga);
+    }
+
+    @Transactional
+    public void startCreditReversal(SagaState saga) {
+        if (saga.getCreditReversalStatus() == StepStatus.PENDING
+                || saga.getCreditReversalStatus() == StepStatus.COMPLETED) {
+            return;
+        }
+        if (saga.getCreditStatus() != StepStatus.COMPLETED
+                || saga.getCreditTransactionId() == null) {
+            throw new IllegalStateException(
+                    "Cannot reverse credit before a completed credit transaction"
+            );
+        }
+        saga.setPaymentState(PaymentState.COMPENSATING);
+        saga.setCreditReversalStatus(StepStatus.PENDING);
+        sagaStateRepository.save(saga);
+    }
+
+    @Transactional
+    public void completeCreditReversal(
+            SagaState saga,
+            UUID reversalTransactionId
+    ) {
+        if (saga.getCreditReversalStatus() != StepStatus.PENDING
+                || reversalTransactionId == null) {
+            throw new IllegalStateException("Credit reversal is not pending");
+        }
+        saga.setCreditReversalStatus(StepStatus.COMPLETED);
+        saga.setCreditReversalTransactionId(reversalTransactionId);
         sagaStateRepository.save(saga);
     }
 

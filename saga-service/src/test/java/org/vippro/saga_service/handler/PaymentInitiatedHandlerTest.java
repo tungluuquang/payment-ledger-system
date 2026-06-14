@@ -68,6 +68,7 @@ class PaymentInitiatedHandlerTest {
         return PaymentInitiated.builder()
                 .eventId(UUID.randomUUID())
                 .paymentId(UUID.randomUUID())
+                .requesterUserId(UUID.randomUUID())
                 .sourceAccountId(UUID.randomUUID())
                 .destinationAccountId(UUID.randomUUID())
                 .amount(amount)
@@ -81,6 +82,7 @@ class PaymentInitiatedHandlerTest {
         return SagaState.builder()
                 .sagaId(UUID.randomUUID())
                 .paymentId(event.getPaymentId())
+                .requesterUserId(event.getRequesterUserId())
                 .sourceAccountId(event.getSourceAccountId())
                 .destinationAccountId(event.getDestinationAccountId())
                 .amount(event.getAmount())
@@ -89,8 +91,10 @@ class PaymentInitiatedHandlerTest {
                 .paymentState(PaymentState.PROCESSING)
                 .fraudStatus(fraudStatus)
                 .debitStatus(StepStatus.NOT_STARTED)
+                .creditStatus(StepStatus.NOT_STARTED)
                 .ledgerStatus(StepStatus.NOT_STARTED)
                 .debitReversalStatus(StepStatus.NOT_STARTED)
+                .creditReversalStatus(StepStatus.NOT_STARTED)
                 .build();
     }
 }

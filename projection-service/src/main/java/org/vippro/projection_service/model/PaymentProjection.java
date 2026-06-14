@@ -50,6 +50,10 @@ public class PaymentProjection {
     private StepViewStatus debitStatus;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "credit_status", nullable = false)
+    private StepViewStatus creditStatus;
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "ledger_status", nullable = false)
     private StepViewStatus ledgerStatus;
 
@@ -59,6 +63,12 @@ public class PaymentProjection {
 
     @Column(name = "debit_transaction_id")
     private UUID debitTransactionId;
+
+    @Column(name = "credit_transaction_id")
+    private UUID creditTransactionId;
+
+    @Column(name = "credit_reversal_transaction_id")
+    private UUID creditReversalTransactionId;
 
     @Column(name = "reversal_transaction_id")
     private UUID reversalTransactionId;

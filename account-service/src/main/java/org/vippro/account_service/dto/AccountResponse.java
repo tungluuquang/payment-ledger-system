@@ -9,6 +9,7 @@ import java.util.UUID;
 
 public record AccountResponse(
         UUID accountId,
+        UUID ownerUserId,
         BigDecimal balance,
         CurrencyType currency,
         AccountStatus status
@@ -16,6 +17,7 @@ public record AccountResponse(
     public static AccountResponse from(Account account) {
         return new AccountResponse(
                 account.getAccountId(),
+                account.getOwnerUserId(),
                 account.getBalance(),
                 account.getCurrency(),
                 account.getStatus()

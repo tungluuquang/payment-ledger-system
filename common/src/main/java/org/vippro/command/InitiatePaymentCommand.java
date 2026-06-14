@@ -12,6 +12,7 @@ import java.util.UUID;
 @Builder
 @Jacksonized
 public class InitiatePaymentCommand {
+    UUID requesterUserId;
     UUID sourceAccountId;
     UUID destinationAccountId;
     UUID correlationId;

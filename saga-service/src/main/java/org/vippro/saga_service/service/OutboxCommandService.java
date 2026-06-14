@@ -44,6 +44,7 @@ public class OutboxCommandService {
         AccountDebitRequestedCommand cmd = AccountDebitRequestedCommand.builder()
                 .paymentId(event.getPaymentId())
                 .accountId(saga.getSourceAccountId())
+                .ownerUserId(saga.getRequesterUserId())
                 .amount(saga.getAmount())
                 .currency(saga.getCurrency())
                 .idempotencyKey(UUID.randomUUID())
@@ -75,7 +76,22 @@ public class OutboxCommandService {
         );
     }
 
-    public void requestJournalEntry(SagaState saga, AccountDebited event) {
+    public void requestAccountCredit(SagaState saga) {
+        AccountCreditRequestedCommand cmd =
+                AccountCreditRequestedCommand.builder()
+                        .paymentId(saga.getPaymentId())
+                        .accountId(saga.getDestinationAccountId())
+                        .amount(saga.getAmount())
+                        .currency(saga.getCurrency())
+                        .idempotencyKey(UUID.randomUUID())
+                        .correlationId(saga.getCorrelationId())
+                        .requestedAt(Instant.now())
+                        .build();
+        saveOutbox(saga.getSagaId(), "account-commands",
+                AccountCreditRequestedCommand.class.getSimpleName(), cmd);
+    }
+
+    public void requestJournalEntry(SagaState saga, AccountCredited event) {
         JournalEntryRequestedCommand cmd =
             JournalEntryRequestedCommand.builder()
                     .paymentId(saga.getPaymentId())
@@ -138,6 +154,28 @@ public class OutboxCommandService {
                 ReverseAccountDebitCommand.class.getSimpleName(),
                 cmd
         );
+    }
+
+    public void requestReverseCredit(SagaState saga, String reason) {
+        if (saga.getCreditTransactionId() == null) {
+            throw new IllegalStateException(
+                    "Cannot reverse credit without original transaction ID"
+            );
+        }
+        ReverseAccountCreditCommand cmd =
+                ReverseAccountCreditCommand.builder()
+                        .paymentId(saga.getPaymentId())
+                        .accountId(saga.getDestinationAccountId())
+                        .originalTransactionId(saga.getCreditTransactionId())
+                        .amount(saga.getAmount())
+                        .currency(saga.getCurrency())
+                        .correlationId(saga.getCorrelationId())
+                        .idempotencyKey(UUID.randomUUID())
+                        .reason(reason)
+                        .requestedAt(Instant.now())
+                        .build();
+        saveOutbox(saga.getSagaId(), "account-commands",
+                ReverseAccountCreditCommand.class.getSimpleName(), cmd);
     }
 
     private void saveOutbox(

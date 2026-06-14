@@ -1,0 +1,7 @@
+CREATE DATABASE command_db;
+CREATE DATABASE saga_db;
+CREATE DATABASE fraud_db;
+CREATE DATABASE account_db;
+CREATE DATABASE ledger_db;
+CREATE DATABASE projection_db;
+CREATE DATABASE user_db;

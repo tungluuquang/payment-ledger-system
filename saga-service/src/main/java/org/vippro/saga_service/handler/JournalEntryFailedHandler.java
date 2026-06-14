@@ -36,8 +36,8 @@ public class JournalEntryFailedHandler implements SagaEventHandler<JournalEntryF
 
         SagaState saga = sagaStateService.find(event.getPaymentId());
 
-        if (saga.getDebitReversalStatus() == StepStatus.PENDING
-                || saga.getDebitReversalStatus() == StepStatus.COMPLETED
+        if (saga.getCreditReversalStatus() == StepStatus.PENDING
+                || saga.getCreditReversalStatus() == StepStatus.COMPLETED
                 || saga.getPaymentState() == PaymentState.COMPENSATING
                 || saga.getPaymentState() == PaymentState.COMPENSATED
                 || saga.getLedgerStatus() == StepStatus.COMPLETED) {
@@ -47,9 +47,9 @@ public class JournalEntryFailedHandler implements SagaEventHandler<JournalEntryF
         validateEvent(saga, event);
 
         sagaStateService.failLedger(saga, event.getReason());
-        sagaStateService.startDebitReversal(saga);
+        sagaStateService.startCreditReversal(saga);
 
-        outboxCommandService.requestReverseDebit(
+        outboxCommandService.requestReverseCredit(
                 saga,
                 event.getReason()
         );

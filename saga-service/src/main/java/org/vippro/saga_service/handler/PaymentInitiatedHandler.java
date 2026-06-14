@@ -62,6 +62,7 @@ public class PaymentInitiatedHandler implements SagaEventHandler<PaymentInitiate
     private void validateEvent(PaymentInitiated event) {
         if (event.getEventId() == null
                 || event.getPaymentId() == null
+                || event.getRequesterUserId() == null
                 || event.getSourceAccountId() == null
                 || event.getDestinationAccountId() == null
                 || event.getAmount() == null
@@ -84,6 +85,7 @@ public class PaymentInitiatedHandler implements SagaEventHandler<PaymentInitiate
 
     private void validateSaga(SagaState saga, PaymentInitiated event) {
         if (!Objects.equals(saga.getPaymentId(), event.getPaymentId())
+                || !Objects.equals(saga.getRequesterUserId(), event.getRequesterUserId())
                 || !Objects.equals(saga.getSourceAccountId(), event.getSourceAccountId())
                 || !Objects.equals(saga.getDestinationAccountId(), event.getDestinationAccountId())
                 || saga.getAmount().compareTo(event.getAmount()) != 0

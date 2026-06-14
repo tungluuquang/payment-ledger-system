@@ -37,7 +37,7 @@ public class AccountDebitedHandler implements SagaEventHandler<AccountDebited> {
 
         SagaState saga = sagaStateService.find(event.getPaymentId());
 
-        if (saga.getLedgerStatus() == StepStatus.COMPLETED
+        if (saga.getCreditStatus() == StepStatus.COMPLETED
                 || saga.getDebitStatus() == StepStatus.COMPLETED) {
             return;
         }
@@ -54,9 +54,9 @@ public class AccountDebitedHandler implements SagaEventHandler<AccountDebited> {
 
         validateEvent(saga, event);
         sagaStateService.completeDebit(saga, event.getTransactionId());
-        sagaStateService.markLedgerPending(saga);
+        sagaStateService.markCreditPending(saga);
 
-        outboxCommandService.requestJournalEntry(saga, event);
+        outboxCommandService.requestAccountCredit(saga);
     }
 
     private void validateEvent(SagaState saga, AccountDebited event) {

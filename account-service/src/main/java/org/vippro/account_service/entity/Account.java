@@ -35,6 +35,9 @@ public class Account {
     @Column(name = "account_id", nullable = false, updatable = false)
     private UUID accountId;
 
+    @Column(name = "owner_user_id", nullable = false, updatable = false)
+    private UUID ownerUserId;
+
     @Column(nullable = false, precision = 19, scale = 4)
     private BigDecimal balance;
 

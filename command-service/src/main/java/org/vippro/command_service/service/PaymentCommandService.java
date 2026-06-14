@@ -66,6 +66,7 @@ public class PaymentCommandService {
 
         PaymentRecord payment = PaymentRecord.builder()
                 .paymentId(paymentId)
+                .requesterUserId(command.getRequesterUserId())
                 .sourceAccountId(command.getSourceAccountId())
                 .destinationAccountId(command.getDestinationAccountId())
                 .amount(command.getAmount())
@@ -81,6 +82,7 @@ public class PaymentCommandService {
         PaymentInitiated event = PaymentInitiated.builder()
                 .eventId(eventId)
                 .paymentId(paymentId)
+                .requesterUserId(command.getRequesterUserId())
                 .sourceAccountId(command.getSourceAccountId())
                 .destinationAccountId(command.getDestinationAccountId())
                 .amount(command.getAmount())
@@ -240,6 +242,7 @@ public class PaymentCommandService {
 
     private void validateInitiate(InitiatePaymentCommand command) {
         requireNonNull(command, "command");
+        requireNonNull(command.getRequesterUserId(), "requesterUserId");
         requireNonNull(command.getSourceAccountId(), "sourceAccountId");
         requireNonNull(command.getDestinationAccountId(), "destinationAccountId");
         requireNonNull(command.getCorrelationId(), "correlationId");
@@ -261,6 +264,7 @@ public class PaymentCommandService {
             InitiatePaymentCommand command
     ) {
         if (!Objects.equals(existing.getSourceAccountId(), command.getSourceAccountId())
+                || !Objects.equals(existing.getRequesterUserId(), command.getRequesterUserId())
                 || !Objects.equals(existing.getDestinationAccountId(), command.getDestinationAccountId())
                 || existing.getAmount().compareTo(command.getAmount()) != 0
                 || existing.getCurrency() != command.getCurrency()

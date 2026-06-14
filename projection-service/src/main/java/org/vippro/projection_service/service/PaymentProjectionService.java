@@ -100,10 +100,50 @@ public class PaymentProjectionService {
             );
             projection.setDebitStatus(StepViewStatus.COMPLETED);
             projection.setDebitTransactionId(value.getTransactionId());
+            if (projection.getCreditStatus() == StepViewStatus.NOT_STARTED) {
+                projection.setCreditStatus(StepViewStatus.PENDING);
+            }
+            markProcessing(projection);
+            return;
+        }
+        if (event instanceof AccountCredited value) {
+            setDestinationAccount(projection, value.getAccountId());
+            setAmountAndCurrency(
+                    projection, value.getAmount(), value.getCurrency()
+            );
+            projection.setCreditStatus(StepViewStatus.COMPLETED);
+            projection.setCreditTransactionId(value.getTransactionId());
             if (projection.getLedgerStatus() == StepViewStatus.NOT_STARTED) {
                 projection.setLedgerStatus(StepViewStatus.PENDING);
             }
             markProcessing(projection);
+            return;
+        }
+        if (event instanceof AccountCreditFailed value) {
+            setDestinationAccount(projection, value.getAccountId());
+            setAmountAndCurrency(
+                    projection, value.getAmount(), value.getCurrency()
+            );
+            if (projection.getCreditStatus() != StepViewStatus.COMPLETED) {
+                projection.setCreditStatus(StepViewStatus.FAILED);
+                projection.setReversalStatus(StepViewStatus.PENDING);
+                projection.setLastError(value.getReason());
+                markFailed(projection);
+            }
+            return;
+        }
+        if (event instanceof AccountCreditReversed value) {
+            setDestinationAccount(projection, value.getAccountId());
+            setAmountAndCurrency(
+                    projection, value.getAmount(), value.getCurrency()
+            );
+            projection.setCreditReversalTransactionId(
+                    value.getReversalTransactionId()
+            );
+            projection.setReversalStatus(StepViewStatus.PENDING);
+            if (!isTerminal(projection)) {
+                projection.setPaymentStatus(PaymentViewStatus.COMPENSATING);
+            }
             return;
         }
         if (event instanceof AccountDebitFailed value) {
@@ -221,6 +261,7 @@ public class PaymentProjectionService {
                 .paymentStatus(PaymentViewStatus.UNKNOWN)
                 .fraudStatus(StepViewStatus.NOT_STARTED)
                 .debitStatus(StepViewStatus.NOT_STARTED)
+                .creditStatus(StepViewStatus.NOT_STARTED)
                 .ledgerStatus(StepViewStatus.NOT_STARTED)
                 .reversalStatus(StepViewStatus.NOT_STARTED)
                 .lastEventType("UNKNOWN")

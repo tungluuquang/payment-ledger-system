@@ -130,6 +130,7 @@ class PaymentCommandServiceTest {
 
     private InitiatePaymentCommand initiateCommand() {
         return InitiatePaymentCommand.builder()
+                .requesterUserId(UUID.randomUUID())
                 .sourceAccountId(UUID.randomUUID())
                 .destinationAccountId(UUID.randomUUID())
                 .correlationId(UUID.randomUUID())

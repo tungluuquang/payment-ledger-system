@@ -2,6 +2,8 @@ package org.vippro.account_service.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -25,8 +27,12 @@ public class AccountController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public AccountResponse create(@RequestBody CreateAccountRequest request) {
+    public AccountResponse create(
+            @org.springframework.security.core.annotation.AuthenticationPrincipal Jwt jwt,
+            @RequestBody CreateAccountRequest request
+    ) {
         Account account = accountManagementService.create(
+                userId(jwt),
                 request.accountId(),
                 request.initialBalance(),
                 request.currency()
@@ -35,9 +41,29 @@ public class AccountController {
     }
 
     @GetMapping("/{accountId}")
-    public AccountResponse find(@PathVariable UUID accountId) {
+    public AccountResponse find(
+            @PathVariable UUID accountId,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal Jwt jwt,
+            Authentication authentication
+    ) {
         return AccountResponse.from(
-                accountManagementService.find(accountId)
+                accountManagementService.findOwned(
+                        accountId,
+                        userId(jwt),
+                        authentication.getAuthorities().stream()
+                                .anyMatch(authority ->
+                                        authority.getAuthority().equals("ROLE_ADMIN"))
+                )
         );
+    }
+
+    private UUID userId(Jwt jwt) {
+        String value = jwt == null ? null : jwt.getClaimAsString("user_id");
+        if (value == null) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "A user access token is required"
+            );
+        }
+        return UUID.fromString(value);
     }
 }

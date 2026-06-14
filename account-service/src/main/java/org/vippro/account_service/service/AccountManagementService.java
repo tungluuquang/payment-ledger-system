@@ -19,11 +19,13 @@ public class AccountManagementService {
 
     @Transactional
     public Account create(
+            UUID ownerUserId,
             UUID accountId,
             BigDecimal initialBalance,
             CurrencyType currency
     ) {
-        if (initialBalance == null
+        if (ownerUserId == null
+                || initialBalance == null
                 || initialBalance.signum() < 0
                 || currency == null) {
             throw new IllegalArgumentException(
@@ -39,6 +41,7 @@ public class AccountManagementService {
         return accountRepository.save(
                 Account.builder()
                         .accountId(id)
+                        .ownerUserId(ownerUserId)
                         .balance(initialBalance)
                         .currency(currency)
                         .status(AccountStatus.ACTIVE)
@@ -52,5 +55,16 @@ public class AccountManagementService {
                 .orElseThrow(() -> new IllegalStateException(
                         "Account not found: " + accountId
                 ));
+    }
+
+    @Transactional(readOnly = true)
+    public Account findOwned(UUID accountId, UUID requesterUserId, boolean admin) {
+        Account account = find(accountId);
+        if (!admin && !account.getOwnerUserId().equals(requesterUserId)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Account does not belong to authenticated user"
+            );
+        }
+        return account;
     }
 }

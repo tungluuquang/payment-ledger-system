@@ -29,6 +29,7 @@ public class SagaState {
 
     @Column(name = "payment_id", nullable = false, unique = true)
     private UUID paymentId;
+    private UUID requesterUserId;
     private UUID sourceAccountId;
     private UUID destinationAccountId;
 
@@ -38,7 +39,9 @@ public class SagaState {
     private CurrencyType currency;
 
     private UUID debitTransactionId;
+    private UUID creditTransactionId;
     private UUID reversalTransactionId;
+    private UUID creditReversalTransactionId;
     private UUID correlationId;
 
     @Enumerated(EnumType.STRING)
@@ -52,10 +55,16 @@ public class SagaState {
     private StepStatus debitStatus;
 
     @Enumerated(EnumType.STRING)
+    private StepStatus creditStatus;
+
+    @Enumerated(EnumType.STRING)
     private StepStatus ledgerStatus;
 
     @Enumerated(EnumType.STRING)
     private StepStatus debitReversalStatus;
+
+    @Enumerated(EnumType.STRING)
+    private StepStatus creditReversalStatus;
 
     private String lastEventType;
     private String lastError;

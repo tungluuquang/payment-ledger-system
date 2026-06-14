@@ -15,6 +15,7 @@ import java.util.UUID;
 public class AccountDebitRequestedCommand {
     UUID paymentId;
     UUID accountId;
+    UUID ownerUserId;
 
     BigDecimal amount;
     CurrencyType currency;

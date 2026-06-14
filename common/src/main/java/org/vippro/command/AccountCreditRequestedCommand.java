@@ -1,4 +1,4 @@
-package org.vippro.event;
+package org.vippro.command;
 
 import lombok.Builder;
 import lombok.Value;
@@ -12,18 +12,12 @@ import java.util.UUID;
 @Value
 @Builder
 @Jacksonized
-public class PaymentInitiated {
-    UUID eventId;
+public class AccountCreditRequestedCommand {
     UUID paymentId;
-    UUID requesterUserId;
-
-    UUID sourceAccountId;
-    UUID destinationAccountId;
-
+    UUID accountId;
     BigDecimal amount;
     CurrencyType currency;
-
-    UUID correlationId;
     UUID idempotencyKey;
-    Instant occurredAt;
+    UUID correlationId;
+    Instant requestedAt;
 }

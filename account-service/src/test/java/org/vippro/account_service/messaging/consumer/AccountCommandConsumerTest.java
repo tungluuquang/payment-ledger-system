@@ -32,6 +32,7 @@ class AccountCommandConsumerTest {
                 AccountDebitRequestedCommand.builder()
                         .paymentId(UUID.randomUUID())
                         .accountId(UUID.randomUUID())
+                        .ownerUserId(UUID.randomUUID())
                         .amount(new BigDecimal("25.00"))
                         .currency(CurrencyType.USD)
                         .idempotencyKey(UUID.randomUUID())

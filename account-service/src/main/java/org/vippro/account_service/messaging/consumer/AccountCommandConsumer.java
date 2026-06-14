@@ -7,7 +7,9 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import org.vippro.account_service.service.AccountCommandService;
 import org.vippro.command.AccountDebitRequestedCommand;
+import org.vippro.command.AccountCreditRequestedCommand;
 import org.vippro.command.ReverseAccountDebitCommand;
+import org.vippro.command.ReverseAccountCreditCommand;
 import org.vippro.messaging.CommandEnvelope;
 
 @Component
@@ -49,6 +51,25 @@ public class AccountCommandConsumer {
                                 ReverseAccountDebitCommand.class
                         );
                 accountCommandService.reverse(envelope.getCommandId(), command);
+            }
+            case "AccountCreditRequestedCommand" -> {
+                AccountCreditRequestedCommand command =
+                        objectMapper.treeToValue(
+                                envelope.getPayload(),
+                                AccountCreditRequestedCommand.class
+                        );
+                accountCommandService.credit(envelope.getCommandId(), command);
+            }
+            case "ReverseAccountCreditCommand" -> {
+                ReverseAccountCreditCommand command =
+                        objectMapper.treeToValue(
+                                envelope.getPayload(),
+                                ReverseAccountCreditCommand.class
+                        );
+                accountCommandService.reverseCredit(
+                        envelope.getCommandId(),
+                        command
+                );
             }
             default -> throw new IllegalArgumentException(
                     "Unknown account command type: "
