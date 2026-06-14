@@ -6,9 +6,9 @@ spring:
     import: optional:file:.env[.properties]
 
   datasource:
-    url: jdbc:postgresql://${HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
-    username: ${POSTGRES_USER}
-    password: ${POSTGRES_PASSWORD}
+    url: jdbc:postgresql://${HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:command_db}
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:postgres}
 
   jpa:
     hibernate:
@@ -25,15 +25,26 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
     consumer:
+      group-id: command-service
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      properties:
-        spring.json.trusted.packages: "org.vippro.event,org.vippro.command"
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest
 
 eureka:
   client:
+    enabled: ${EUREKA_CLIENT_ENABLED:true}
     serviceUrl:
-      defaultZone: ${EUREKA_SERVER_URL}
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka}
 
 server:
-  port: ${PORT}
+  port: ${PORT:8081}
+
+command:
+  kafka:
+    retry:
+      interval-ms: ${COMMAND_KAFKA_RETRY_INTERVAL_MS:2000}
+      max-attempts: ${COMMAND_KAFKA_RETRY_MAX_ATTEMPTS:3}
+  outbox:
+    fixed-delay-ms: ${COMMAND_OUTBOX_FIXED_DELAY_MS:2000}
+    recovery-fixed-delay-ms: ${COMMAND_OUTBOX_RECOVERY_DELAY_MS:60000}
+    processing-timeout-ms: ${COMMAND_OUTBOX_PROCESSING_TIMEOUT_MS:300000}

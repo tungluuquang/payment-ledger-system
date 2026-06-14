@@ -1,7 +1,8 @@
 package org.vippro.command_service.util;
 
 public enum OutboxStatus {
-    PENDING,
+    NEW,
+    PROCESSING,
     PUBLISHED,
     FAILED
 }
