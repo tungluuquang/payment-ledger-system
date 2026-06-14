@@ -51,7 +51,11 @@ public class SecurityConfig {
                         .hasAuthority("SCOPE_payment.write")
                         .pathMatchers(HttpMethod.GET, "/api/payments/**")
                         .hasAuthority("SCOPE_payment.read")
-                        .pathMatchers(HttpMethod.GET, "/api/accounts/**")
+                        .pathMatchers(
+                                HttpMethod.GET,
+                                "/api/accounts",
+                                "/api/accounts/**"
+                        )
                         .hasAuthority("SCOPE_account.read")
                         .pathMatchers(HttpMethod.POST, "/api/accounts")
                         .hasAuthority("SCOPE_account.write")

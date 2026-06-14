@@ -2,6 +2,7 @@ package org.vippro.account_service.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Page;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,6 +25,19 @@ import java.util.UUID;
 public class AccountController {
 
     private final AccountManagementService accountManagementService;
+
+    @GetMapping
+    public Page<AccountResponse> list(
+            @org.springframework.security.core.annotation.AuthenticationPrincipal Jwt jwt,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "0") int page,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "20") int size
+    ) {
+        return accountManagementService.listOwned(
+                userId(jwt),
+                page,
+                size
+        ).map(AccountResponse::from);
+    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)

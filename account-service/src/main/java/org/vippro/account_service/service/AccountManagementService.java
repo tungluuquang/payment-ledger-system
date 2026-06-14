@@ -3,6 +3,9 @@ package org.vippro.account_service.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.vippro.account_service.entity.Account;
 import org.vippro.account_service.enums.AccountStatus;
 import org.vippro.account_service.repository.AccountRepository;
@@ -66,5 +69,24 @@ public class AccountManagementService {
             );
         }
         return account;
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Account> listOwned(
+            UUID ownerUserId,
+            int page,
+            int size
+    ) {
+        if (ownerUserId == null) {
+            throw new IllegalArgumentException("ownerUserId is required");
+        }
+        return accountRepository.findByOwnerUserId(
+                ownerUserId,
+                PageRequest.of(
+                        Math.max(page, 0),
+                        Math.min(Math.max(size, 1), 100),
+                        Sort.by(Sort.Direction.DESC, "createdAt")
+                )
+        );
     }
 }
