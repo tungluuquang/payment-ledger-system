@@ -1,1 +1,4 @@
 rootProject.name = 'fraud-check-service'
+
+include ':common'
+project(':common').projectDir = file('../common')

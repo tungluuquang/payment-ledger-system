@@ -2,6 +2,7 @@ package org.vippro.command;
 
 import lombok.Value;
 import lombok.Builder;
+import lombok.extern.jackson.Jacksonized;
 import org.vippro.util.CurrencyType;
 
 import java.math.BigDecimal;
@@ -10,6 +11,7 @@ import java.util.UUID;
 
 @Value
 @Builder
+@Jacksonized
 public class FraudCheckRequestedCommand {
     UUID paymentId;
     UUID accountId;
