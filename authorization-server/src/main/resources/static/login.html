@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LedgerPay Secure Sign In</title>
+    <link rel="stylesheet" href="/login.css" />
+  </head>
+  <body>
+    <div class="login-shell">
+      <div class="login-glow glow-one"></div>
+      <div class="login-glow glow-two"></div>
+      <div class="login-hero">
+        <div class="hero-badge">LedgerPay Authorization</div>
+        <h1>Welcome back to<br /><span>LedgerPay</span></h1>
+        <p>Securely sign in and continue managing money movement with confidence, audit-ready history, and bank-grade protection.</p>
+        <div class="hero-values">
+          <span>OAuth 2.0 security</span>
+          <span>PKCE-powered login</span>
+          <span>Modern financial experience</span>
+        </div>
+      </div>
+      <div class="login-card">
+        <div class="card-header">
+          <span>Secure Access</span>
+          <h2>Sign in to continue</h2>
+          <p>Enter your LedgerPay credentials to launch the authorization flow.</p>
+        </div>
+
+        <form method="post" action="/login" class="login-form">
+          <input type="hidden" name="_csrf" id="csrf" value="" />
+          <label>
+            Username
+            <input name="username" type="text" autocomplete="username" required />
+          </label>
+          <label>
+            Password
+            <input name="password" type="password" autocomplete="current-password" required />
+          </label>
+          <button type="submit">Sign in</button>
+        </form>
+
+        <div class="card-footnote">
+          <span>Credentials are encrypted and handled by the authorization server.</span>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+      }
+      const csrfToken = getCookie('XSRF-TOKEN');
+      if (csrfToken) {
+        document.getElementById('csrf').value = csrfToken;
+      }
+    </script>
+  </body>
+</html>

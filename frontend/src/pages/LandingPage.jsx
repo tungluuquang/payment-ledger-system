@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { userApi } from "../services/api";
 import { Field } from "../components/ui/Modal";
@@ -85,6 +86,7 @@ export function LandingPage() {
             <p>Sign in to manage your accounts and transfers.</p>
             {notice && <div className="notice success">{notice}</div>}
             <button className="primary-button" onClick={() => login("/app")}>Sign in securely <ArrowRight size={17} /></button>
+            <Link className="text-button" to="/login">Open dedicated login page</Link>
             <div className="auth-divider"><span>New to LedgerPay?</span></div>
             <button className="text-button" onClick={() => setRegistering(true)}>Create your free account</button>
             <div className="auth-footnote"><LockKeyhole size={13} /> Your credentials are encrypted and never shared.</div>

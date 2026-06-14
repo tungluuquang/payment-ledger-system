@@ -3,6 +3,7 @@ import { useAuth } from "../auth/AuthProvider";
 import { AppDataProvider } from "../state/AppDataProvider";
 import { AppLayout } from "../components/layout/AppLayout";
 import { LandingPage } from "../pages/LandingPage";
+import { LoginPage } from "../pages/LoginPage";
 import { AuthCallbackPage } from "../pages/AuthCallbackPage";
 import { DashboardPage } from "../pages/DashboardPage";
 import { AccountsPage } from "../pages/AccountsPage";
@@ -34,6 +35,10 @@ export function AppRouter() {
         }
       />
       <Route path="/callback" element={<AuthCallbackPage />} />
+      <Route
+        path="/login"
+        element={isAuthenticated ? <Navigate to="/app" replace /> : <LoginPage />}
+      />
       <Route path="/app" element={<ProtectedApp />}>
         <Route index element={<DashboardPage />} />
         <Route path="accounts" element={<AccountsPage />} />
