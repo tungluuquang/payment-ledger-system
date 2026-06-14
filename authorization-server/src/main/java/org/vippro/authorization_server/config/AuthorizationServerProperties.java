@@ -5,8 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "authorization")
 public record AuthorizationServerProperties(
         String issuer,
-        Client client,
-        User user
+        Client client
 ) {
     public record Client(
             String id,
@@ -16,9 +15,4 @@ public record AuthorizationServerProperties(
     ) {
     }
 
-    public record User(
-            String username,
-            String password
-    ) {
-    }
 }

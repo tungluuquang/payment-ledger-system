@@ -5,6 +5,11 @@ spring:
   config:
     import: optional:file:.env[.properties]
 
+  datasource:
+    url: jdbc:postgresql://${AUTH_DB_HOST:localhost}:${AUTH_DB_PORT:5432}/${AUTH_DB_NAME:user_db}
+    username: ${AUTH_DB_USER:postgres}
+    password: ${AUTH_DB_PASSWORD:postgres}
+
 server:
   port: ${PORT:9000}
   shutdown: graceful
@@ -17,9 +22,6 @@ authorization:
     secret: ${AUTH_CLIENT_SECRET:change-me}
     redirect-uri: ${AUTH_REDIRECT_URI:http://127.0.0.1:8080/login/oauth2/code/payment-ledger}
     post-logout-redirect-uri: ${AUTH_POST_LOGOUT_REDIRECT_URI:http://127.0.0.1:8080/}
-  user:
-    username: ${AUTH_USER_USERNAME:admin}
-    password: ${AUTH_USER_PASSWORD:change-me}
 
 eureka:
   client:

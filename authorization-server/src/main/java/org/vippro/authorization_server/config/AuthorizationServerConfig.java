@@ -10,14 +10,15 @@ import org.springframework.core.annotation.Order;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.factory.PasswordEncoderFactories;
+import org.springframework.security.provisioning.JdbcUserDetailsManager;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.core.oidc.OidcScopes;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
 import org.springframework.security.oauth2.server.authorization.client.InMemoryRegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
@@ -26,6 +27,8 @@ import org.springframework.security.oauth2.server.authorization.config.annotatio
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
+import org.springframework.security.oauth2.server.authorization.token.JwtEncodingContext;
+import org.springframework.security.oauth2.server.authorization.token.OAuth2TokenCustomizer;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
@@ -35,7 +38,9 @@ import java.security.KeyPairGenerator;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
+import javax.sql.DataSource;
 
 @Configuration
 public class AuthorizationServerConfig {
@@ -99,6 +104,10 @@ public class AuthorizationServerConfig {
                 .scope(OidcScopes.PROFILE)
                 .scope("payment.read")
                 .scope("payment.write")
+                .scope("account.read")
+                .scope("account.write")
+                .scope("user.read")
+                .scope("user.write")
                 .clientSettings(ClientSettings.builder()
                         .requireAuthorizationConsent(true)
                         .requireProofKey(true)
@@ -114,24 +123,27 @@ public class AuthorizationServerConfig {
     }
 
     @Bean
-    UserDetailsService userDetailsService(
-            AuthorizationServerProperties properties,
-            PasswordEncoder passwordEncoder
-    ) {
-        AuthorizationServerProperties.User configuredUser = properties.user();
-
-        return new org.springframework.security.provisioning
-                .InMemoryUserDetailsManager(
-                User.withUsername(configuredUser.username())
-                        .password(passwordEncoder.encode(configuredUser.password()))
-                        .roles("USER")
-                        .build()
-        );
+    UserDetailsService userDetailsService(DataSource dataSource) {
+        JdbcUserDetailsManager users = new JdbcUserDetailsManager(dataSource);
+        users.setUsersByUsernameQuery("""
+                SELECT username,
+                       password_hash,
+                       CASE WHEN status = 'ACTIVE' THEN true ELSE false END
+                FROM users
+                WHERE lower(username) = lower(?)
+                """);
+        users.setAuthoritiesByUsernameQuery("""
+                SELECT u.username, concat('ROLE_', r.role)
+                FROM users u
+                JOIN user_roles r ON r.user_id = u.user_id
+                WHERE lower(u.username) = lower(?)
+                """);
+        return users;
     }
 
     @Bean
     PasswordEncoder passwordEncoder() {
-        return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+        return new BCryptPasswordEncoder();
     }
 
     @Bean
@@ -161,6 +173,48 @@ public class AuthorizationServerConfig {
         return AuthorizationServerSettings.builder()
                 .issuer(properties.issuer())
                 .build();
+    }
+
+    @Bean
+    OAuth2TokenCustomizer<JwtEncodingContext> jwtTokenCustomizer(
+            DataSource dataSource
+    ) {
+        return context -> {
+            if (!OAuth2TokenType.ACCESS_TOKEN.equals(context.getTokenType())
+                    || AuthorizationGrantType.CLIENT_CREDENTIALS.equals(
+                    context.getAuthorizationGrantType()
+            )) {
+                return;
+            }
+
+            String username = context.getAuthorization().getPrincipalName();
+            org.springframework.jdbc.core.JdbcTemplate jdbc =
+                    new org.springframework.jdbc.core.JdbcTemplate(dataSource);
+            UUID userId = jdbc.queryForObject(
+                    """
+                    SELECT user_id
+                    FROM users
+                    WHERE lower(username) = lower(?)
+                    """,
+                    UUID.class,
+                    username
+            );
+            List<String> roles = jdbc.queryForList(
+                    """
+                    SELECT role
+                    FROM user_roles r
+                    JOIN users u ON u.user_id = r.user_id
+                    WHERE lower(u.username) = lower(?)
+                    ORDER BY role
+                    """,
+                    String.class,
+                    username
+            );
+
+            context.getClaims()
+                    .claim("user_id", userId.toString())
+                    .claim("roles", roles);
+        };
     }
 
     private static KeyPair generateRsaKey() {

@@ -4,6 +4,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.gateway.route.RouteLocator;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -16,6 +18,9 @@ class ApiGatewayApplicationTests {
 	@Autowired
 	private RouteLocator routeLocator;
 
+	@MockBean
+	private ReactiveJwtDecoder jwtDecoder;
+
 	@Test
 	void contextLoads() {
 		assertThat(routeLocator.getRoutes()
@@ -25,7 +30,8 @@ class ApiGatewayApplicationTests {
 				.contains(
 						"payment-command",
 						"payment-query",
-						"account-api"
+						"account-api",
+						"user-api"
 				);
 	}
 

@@ -5,6 +5,13 @@ spring:
   config:
     import: optional:file:.env[.properties]
 
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${AUTH_ISSUER:http://localhost:9000}
+          jwk-set-uri: ${AUTH_JWK_SET_URI:http://localhost:9000/oauth2/jwks}
+
   cloud:
     gateway:
       discovery:
@@ -41,6 +48,12 @@ spring:
           uri: lb://account-service
           predicates:
             - Path=/api/accounts,/api/accounts/**
+          filters:
+            - StripPrefix=1
+        - id: user-api
+          uri: lb://user-service
+          predicates:
+            - Path=/api/users,/api/users/**
           filters:
             - StripPrefix=1
 

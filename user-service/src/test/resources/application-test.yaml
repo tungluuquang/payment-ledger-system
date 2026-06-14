@@ -1,0 +1,27 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:user_test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:9000
+          jwk-set-uri: http://localhost:9000/oauth2/jwks
+
+server:
+  port: 0
+
+eureka:
+  client:
+    enabled: false
+
+user:
+  bootstrap:
+    admin:
+      enabled: false
