@@ -1,3 +1,71 @@
 spring:
   application:
     name: ledger-service
+
+  config:
+    import: optional:file:.env[.properties]
+
+  datasource:
+    url: jdbc:postgresql://${HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:ledger_db}
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:postgres}
+    hikari:
+      maximum-pool-size: ${DB_MAX_POOL_SIZE:20}
+      minimum-idle: ${DB_MIN_IDLE:5}
+      connection-timeout: ${DB_CONNECTION_TIMEOUT_MS:30000}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    enabled: true
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      properties:
+        enable.idempotence: true
+    consumer:
+      group-id: ledger-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+    listener:
+      ack-mode: record
+
+  lifecycle:
+    timeout-per-shutdown-phase: ${SHUTDOWN_TIMEOUT:30s}
+
+server:
+  port: ${PORT:8083}
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+ledger:
+  kafka:
+    retry:
+      interval-ms: ${LEDGER_KAFKA_RETRY_INTERVAL_MS:2000}
+      max-attempts: ${LEDGER_KAFKA_RETRY_MAX_ATTEMPTS:3}
+  outbox:
+    batch-size: ${LEDGER_OUTBOX_BATCH_SIZE:100}
+    max-retries: ${LEDGER_OUTBOX_MAX_RETRIES:5}
+    fixed-delay-ms: ${LEDGER_OUTBOX_FIXED_DELAY_MS:2000}
+    recovery-fixed-delay-ms: ${LEDGER_OUTBOX_RECOVERY_DELAY_MS:60000}
+    processing-timeout-ms: ${LEDGER_OUTBOX_PROCESSING_TIMEOUT_MS:300000}
+    cleanup-fixed-delay-ms: ${LEDGER_OUTBOX_CLEANUP_DELAY_MS:3600000}
+    retention-days: ${LEDGER_OUTBOX_RETENTION_DAYS:7}
