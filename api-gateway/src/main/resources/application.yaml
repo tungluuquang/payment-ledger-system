@@ -1,3 +1,73 @@
 spring:
   application:
     name: api-gateway
+
+  config:
+    import: optional:file:.env[.properties]
+
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: false
+      httpclient:
+        connect-timeout: ${GATEWAY_CONNECT_TIMEOUT_MS:3000}
+        response-timeout: ${GATEWAY_RESPONSE_TIMEOUT:10s}
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
+          '[/**]':
+            allowed-origin-patterns: ${GATEWAY_ALLOWED_ORIGINS:*}
+            allowed-methods:
+              - GET
+              - POST
+              - OPTIONS
+            allowed-headers: "*"
+            max-age: 3600
+      routes:
+        - id: payment-command
+          uri: lb://command-service
+          predicates:
+            - Path=/api/payments
+            - Method=POST
+        - id: payment-query
+          uri: lb://projection-service
+          predicates:
+            - Path=/api/payments,/api/payments/**
+            - Method=GET
+          filters:
+            - StripPrefix=1
+        - id: account-api
+          uri: lb://account-service
+          predicates:
+            - Path=/api/accounts,/api/accounts/**
+          filters:
+            - StripPrefix=1
+
+  lifecycle:
+    timeout-per-shutdown-phase: ${SHUTDOWN_TIMEOUT:30s}
+
+server:
+  port: ${PORT:8080}
+  shutdown: graceful
+  forward-headers-strategy: framework
+
+eureka:
+  client:
+    enabled: ${EUREKA_CLIENT_ENABLED:true}
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: ${EUREKA_PREFER_IP_ADDRESS:true}
+    lease-renewal-interval-in-seconds: ${EUREKA_LEASE_RENEWAL_SECONDS:30}
+    lease-expiration-duration-in-seconds: ${EUREKA_LEASE_EXPIRATION_SECONDS:90}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true

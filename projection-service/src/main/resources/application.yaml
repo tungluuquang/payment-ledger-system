@@ -46,6 +46,14 @@ server:
   port: ${PORT:8085}
   shutdown: graceful
 
+eureka:
+  client:
+    enabled: ${EUREKA_CLIENT_ENABLED:true}
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: ${EUREKA_PREFER_IP_ADDRESS:true}
+
 management:
   endpoints:
     web:
