@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:account_test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  kafka:
+    bootstrap-servers: localhost:9092
+    listener:
+      auto-startup: false
+    admin:
+      fail-fast: false
+      auto-create: false
+
+server:
+  port: 0

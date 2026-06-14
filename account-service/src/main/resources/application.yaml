@@ -1,3 +1,39 @@
 spring:
   application:
     name: account-service
+
+  config:
+    import: optional:file:.env[.properties]
+
+  datasource:
+    url: jdbc:postgresql://${HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:account_db}
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:postgres}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: account-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest
+
+server:
+  port: ${PORT:8082}
+
+account:
+  kafka:
+    retry:
+      interval-ms: ${ACCOUNT_KAFKA_RETRY_INTERVAL_MS:2000}
+      max-attempts: ${ACCOUNT_KAFKA_RETRY_MAX_ATTEMPTS:3}
+  outbox:
+    fixed-delay-ms: ${ACCOUNT_OUTBOX_FIXED_DELAY_MS:2000}
+    recovery-fixed-delay-ms: ${ACCOUNT_OUTBOX_RECOVERY_DELAY_MS:60000}
+    processing-timeout-ms: ${ACCOUNT_OUTBOX_PROCESSING_TIMEOUT_MS:300000}

@@ -19,3 +19,4 @@ rootProject.name = 'payment-ledger-system'
 
 include 'common'
 include 'saga-service'
+include 'account-service'
