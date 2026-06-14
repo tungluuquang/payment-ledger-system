@@ -32,15 +32,11 @@ public class AccountDebitFailedHandler implements SagaEventHandler<AccountDebitF
     @Override
     @Transactional
     public void handle(AccountDebitFailed event) {
-        if (!processedEventService.tryProcess(
-                event.getEventId(),
-                event.getClass().getSimpleName()
-        )) {
+        if (!processedEventService.tryProcess(event.getEventId(), event.getClass().getSimpleName())) {
             return;
         }
 
-        SagaState saga =
-                sagaStateService.find(event.getPaymentId());
+        SagaState saga = sagaStateService.find(event.getPaymentId());
 
         if (saga.getDebitStatus() == StepStatus.COMPLETED) {
             return;
@@ -50,8 +46,9 @@ public class AccountDebitFailedHandler implements SagaEventHandler<AccountDebitF
                 || saga.getPaymentState() == PaymentState.COMPENSATED
                 || saga.getPaymentState() == PaymentState.CANCELLED) {
             log.warn(
-                    "Ignoring AccountDebited: debitStatus={}, sagaId={}",
+                    "Ignoring AccountDebitFailed: debitStatus={}, paymentState={}, sagaId={}",
                     saga.getDebitStatus(),
+                    saga.getPaymentState(),
                     saga.getSagaId()
             );
             return;
@@ -60,7 +57,6 @@ public class AccountDebitFailedHandler implements SagaEventHandler<AccountDebitF
         validateEvent(saga, event);
 
         sagaStateService.failDebit(saga, event.getReason());
-        sagaStateService.startCompensation(saga);
 
         outboxCommandService.requestCancelPayment(
                 saga,

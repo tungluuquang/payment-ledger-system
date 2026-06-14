@@ -38,12 +38,6 @@ public class OutboxCommandScheduler {
             try {
                 cmd.setStatus(OutboxStatus.PROCESSING);
                 cmd.setProcessingStartedAt(now);
-//
-//                kafkaTemplate.send(cmd.getTopic(),
-//                        cmd.getSagaId().toString(),
-//                        cmd.getPayload()
-//                        ).get();
-//
 
                 CommandEnvelope envelope = CommandEnvelope.builder()
                         .commandId(cmd.getId())

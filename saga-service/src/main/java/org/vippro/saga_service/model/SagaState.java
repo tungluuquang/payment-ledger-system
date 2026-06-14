@@ -37,6 +37,8 @@ public class SagaState {
     @Enumerated(EnumType.STRING)
     private CurrencyType currency;
 
+    private UUID debitTransactionId;
+    private UUID reversalTransactionId;
     private UUID correlationId;
 
     @Enumerated(EnumType.STRING)
@@ -51,6 +53,9 @@ public class SagaState {
 
     @Enumerated(EnumType.STRING)
     private StepStatus ledgerStatus;
+
+    @Enumerated(EnumType.STRING)
+    private StepStatus debitReversalStatus;
 
     private String lastEventType;
     private String lastError;

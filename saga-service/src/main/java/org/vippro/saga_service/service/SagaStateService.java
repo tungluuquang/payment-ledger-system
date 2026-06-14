@@ -34,6 +34,7 @@ public class SagaStateService {
                                 .fraudStatus(StepStatus.NOT_STARTED)
                                 .debitStatus(StepStatus.NOT_STARTED)
                                 .ledgerStatus(StepStatus.NOT_STARTED)
+                                .debitReversalStatus(StepStatus.NOT_STARTED)
                                 .build()
                 ));
     }
@@ -91,6 +92,47 @@ public class SagaStateService {
 
         saga.setUpdatedAt(Instant.now());
 
+        sagaStateRepository.save(saga);
+    }
+
+    @Transactional
+    public void startDebitReversal(SagaState saga) {
+        if (saga.getDebitReversalStatus() == StepStatus.PENDING
+                || saga.getDebitReversalStatus() == StepStatus.COMPLETED) {
+            return;
+        }
+
+        if (saga.getDebitStatus() != StepStatus.COMPLETED
+                || saga.getDebitTransactionId() == null) {
+            throw new IllegalStateException(
+                    "Cannot reverse debit before a completed debit transaction"
+            );
+        }
+
+        saga.setPaymentState(PaymentState.COMPENSATING);
+        saga.setDebitReversalStatus(StepStatus.PENDING);
+        sagaStateRepository.save(saga);
+    }
+
+    @Transactional
+    public void completeDebitReversal(
+            SagaState saga,
+            UUID reversalTransactionId
+    ) {
+        if (reversalTransactionId == null) {
+            throw new IllegalArgumentException(
+                    "Reversal transactionId must not be null"
+            );
+        }
+
+        if (saga.getDebitReversalStatus() != StepStatus.PENDING) {
+            throw new IllegalStateException(
+                    "Debit reversal is not pending"
+            );
+        }
+
+        saga.setDebitReversalStatus(StepStatus.COMPLETED);
+        saga.setReversalTransactionId(reversalTransactionId);
         sagaStateRepository.save(saga);
     }
 
@@ -163,25 +205,30 @@ public class SagaStateService {
     public void completeLedger(SagaState saga) {
 
         saga.setLedgerStatus(StepStatus.COMPLETED);
+        sagaStateRepository.save(saga);
+    }
+
+    @Transactional
+    public void completePayment(SagaState saga) {
+        if (saga.getPaymentState() == PaymentState.COMPLETED) {
+            return;
+        }
+
+        if (saga.getLedgerStatus() != StepStatus.COMPLETED) {
+            throw new IllegalStateException(
+                    "Cannot complete payment before ledger completed"
+            );
+        }
 
         saga.setPaymentState(PaymentState.COMPLETED);
-
         sagaStateRepository.save(saga);
     }
 
     @Transactional
-    public void completeDebit(SagaState saga) {
+    public void completeDebit(SagaState saga, UUID transactionId) {
 
         saga.setDebitStatus(StepStatus.COMPLETED);
-
-        sagaStateRepository.save(saga);
-    }
-
-
-    @Transactional
-    public void compensate(SagaState saga) {
-
-        saga.setPaymentState(PaymentState.COMPENSATING);
+        saga.setDebitTransactionId(transactionId);
 
         sagaStateRepository.save(saga);
     }
@@ -202,6 +249,18 @@ public class SagaStateService {
         }
 
         saga.setFraudStatus(StepStatus.FAILED);
+        saga.setLastError(reason);
+        sagaStateRepository.save(saga);
+    }
+
+    @Transactional
+    public void failLedger(SagaState saga, String reason) {
+        if (saga.getLedgerStatus() == StepStatus.COMPLETED
+                || saga.getLedgerStatus() == StepStatus.FAILED) {
+            return;
+        }
+
+        saga.setLedgerStatus(StepStatus.FAILED);
         saga.setLastError(reason);
         sagaStateRepository.save(saga);
     }

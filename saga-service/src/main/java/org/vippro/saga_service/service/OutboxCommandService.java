@@ -95,18 +95,47 @@ public class OutboxCommandService {
                 cmd
         );
     }
-
-    public void requestCompletePayment(UUID sagaId, PaymentCompleted event) {
+    public void requestCompletePayment(SagaState saga) {
         CompletePaymentCommand cmd = CompletePaymentCommand.builder()
-                .paymentId(event.getPaymentId())
-                .correlationId(event.getCorrelationId())
+                .paymentId(saga.getPaymentId())
+                .correlationId(saga.getCorrelationId())
                 .completedAt(Instant.now())
                 .build();
 
         saveOutbox(
-                sagaId,
+                saga.getSagaId(),
                 "payment-commands",
                 CompletePaymentCommand.class.getSimpleName(),
+                cmd
+        );
+    }
+
+    public void requestReverseDebit(SagaState saga, String reason) {
+        if (saga.getDebitTransactionId() == null) {
+            throw new IllegalStateException(
+                    "Cannot reverse debit without original transaction ID"
+            );
+        }
+
+        ReverseAccountDebitCommand cmd =
+                ReverseAccountDebitCommand.builder()
+                        .paymentId(saga.getPaymentId())
+                        .accountId(saga.getSourceAccountId())
+                        .originalTransactionId(
+                                saga.getDebitTransactionId()
+                        )
+                        .amount(saga.getAmount())
+                        .currency(saga.getCurrency())
+                        .correlationId(saga.getCorrelationId())
+                        .idempotencyKey(UUID.randomUUID())
+                        .reason(reason)
+                        .requestedAt(Instant.now())
+                        .build();
+
+        saveOutbox(
+                saga.getSagaId(),
+                "account-commands",
+                ReverseAccountDebitCommand.class.getSimpleName(),
                 cmd
         );
     }
