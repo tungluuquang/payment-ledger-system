@@ -2,8 +2,17 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: frontend
+  labels:
+    app.kubernetes.io/name: frontend
+    platform.payment-ledger.io/runtime: "true"
 spec:
   replicas: 1
+  revisionHistoryLimit: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: frontend
@@ -12,13 +21,23 @@ spec:
       labels:
         app.kubernetes.io/name: frontend
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: frontend
           image: payment-ledger/frontend:latest
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
-              containerPort: 80
+              containerPort: 8080
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           readinessProbe:
             httpGet:
               path: /
@@ -51,4 +70,3 @@ spec:
     - name: http
       port: 80
       targetPort: http
-

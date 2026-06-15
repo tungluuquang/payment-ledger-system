@@ -1,0 +1,241 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: payment-ledger
+resources:
+  - ../../base
+  - rbac.yaml
+  - ingress.yaml
+  - network-policies.yaml
+  - hardening.yaml
+  - otel-collector.yaml
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: payment-ledger-system
+patches:
+  - target:
+      kind: StatefulSet
+      name: postgres
+    patch: |-
+      $patch: delete
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: postgres
+  - target:
+      kind: Service
+      name: postgres
+    patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: postgres
+  - target:
+      kind: ConfigMap
+      name: postgres-init
+    patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: postgres-init
+  - target:
+      kind: Secret
+      name: platform-secrets
+    patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: platform-secrets
+  - target:
+      kind: ConfigMap
+      name: platform-config
+    patch: |-
+      - op: replace
+        path: /data/HOST
+        value: 127.0.0.1
+      - op: replace
+        path: /data/AUTH_ISSUER
+        value: https://GKE_HOSTNAME
+      - op: replace
+        path: /data/MANAGEMENT_ZIPKIN_TRACING_ENDPOINT
+        value: http://otel-collector:9411/api/v2/spans
+      - op: replace
+        path: /data/ZIPKIN_ENDPOINT
+        value: http://otel-collector:9411/api/v2/spans
+  - target:
+      kind: ConfigMap
+      name: authorization-server-config
+    patch: |-
+      - op: replace
+        path: /data/AUTH_DB_HOST
+        value: 127.0.0.1
+      - op: replace
+        path: /data/AUTH_SPA_REDIRECT_URI
+        value: https://GKE_HOSTNAME/callback
+      - op: replace
+        path: /data/AUTH_SPA_ORIGIN
+        value: https://GKE_HOSTNAME
+  - target:
+      kind: ConfigMap
+      name: api-gateway-config
+    patch: |-
+      - op: replace
+        path: /data/GATEWAY_ALLOWED_ORIGINS
+        value: https://GKE_HOSTNAME
+  - target:
+      kind: Deployment
+      labelSelector: platform.payment-ledger.io/runtime=true
+    patch: |-
+      - op: add
+        path: /spec/template/spec/serviceAccountName
+        value: payment-ledger-runtime
+      - op: add
+        path: /spec/template/spec/affinity
+        value:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 100
+                podAffinityTerm:
+                  topologyKey: kubernetes.io/hostname
+                  labelSelector:
+                    matchExpressions:
+                      - key: app.kubernetes.io/part-of
+                        operator: In
+                        values:
+                          - payment-ledger-system
+      - op: add
+        path: /spec/template/spec/topologySpreadConstraints
+        value:
+          - maxSkew: 1
+            topologyKey: topology.kubernetes.io/zone
+            whenUnsatisfiable: ScheduleAnyway
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/part-of: payment-ledger-system
+  - target:
+      kind: StatefulSet
+      name: kafka
+    patch: |-
+      - op: add
+        path: /spec/template/spec/automountServiceAccountToken
+        value: false
+      - op: add
+        path: /spec/template/spec/securityContext
+        value:
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          fsGroup: 1000
+          seccompProfile:
+            type: RuntimeDefault
+      - op: add
+        path: /spec/template/spec/containers/0/securityContext
+        value:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+  - target:
+      kind: Deployment
+      labelSelector: platform.payment-ledger.io/cloud-sql=true
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/-
+        value:
+          name: cloud-sql-proxy
+          image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.22.1
+          args:
+            - --structured-logs
+            - --port=5432
+            - $(CLOUD_SQL_INSTANCE_CONNECTION_NAME)
+          env:
+            - name: CLOUD_SQL_INSTANCE_CONNECTION_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: gke-platform-config
+                  key: CLOUD_SQL_INSTANCE_CONNECTION_NAME
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65532
+          startupProbe:
+            tcpSocket:
+              port: 5432
+            periodSeconds: 2
+            failureThreshold: 30
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+  - target:
+      kind: Service
+      name: frontend
+    patch: |-
+      - op: add
+        path: /metadata/annotations/cloud.google.com~1neg
+        value: '{"ingress": true}'
+      - op: add
+        path: /metadata/annotations/cloud.google.com~1backend-config
+        value: '{"default": "frontend-backend"}'
+  - target:
+      kind: Service
+      name: api-gateway
+    patch: |-
+      - op: add
+        path: /metadata/annotations/cloud.google.com~1neg
+        value: '{"ingress": true}'
+      - op: add
+        path: /metadata/annotations/cloud.google.com~1backend-config
+        value: '{"default": "api-gateway-backend"}'
+images:
+  - name: payment-ledger/service-discovery
+    newName: GAR_REGISTRY/service-discovery
+    newTag: IMAGE_TAG
+  - name: payment-ledger/authorization-server
+    newName: GAR_REGISTRY/authorization-server
+    newTag: IMAGE_TAG
+  - name: payment-ledger/user-service
+    newName: GAR_REGISTRY/user-service
+    newTag: IMAGE_TAG
+  - name: payment-ledger/api-gateway
+    newName: GAR_REGISTRY/api-gateway
+    newTag: IMAGE_TAG
+  - name: payment-ledger/command-service
+    newName: GAR_REGISTRY/command-service
+    newTag: IMAGE_TAG
+  - name: payment-ledger/saga-service
+    newName: GAR_REGISTRY/saga-service
+    newTag: IMAGE_TAG
+  - name: payment-ledger/fraud-check-service
+    newName: GAR_REGISTRY/fraud-check-service
+    newTag: IMAGE_TAG
+  - name: payment-ledger/account-service
+    newName: GAR_REGISTRY/account-service
+    newTag: IMAGE_TAG
+  - name: payment-ledger/ledger-service
+    newName: GAR_REGISTRY/ledger-service
+    newTag: IMAGE_TAG
+  - name: payment-ledger/projection-service
+    newName: GAR_REGISTRY/projection-service
+    newTag: IMAGE_TAG
+  - name: payment-ledger/reconciliation-service
+    newName: GAR_REGISTRY/reconciliation-service
+    newTag: IMAGE_TAG
+  - name: payment-ledger/analytics-service
+    newName: GAR_REGISTRY/analytics-service
+    newTag: IMAGE_TAG
+  - name: payment-ledger/audit-service
+    newName: GAR_REGISTRY/audit-service
+    newTag: IMAGE_TAG
+  - name: payment-ledger/frontend
+    newName: GAR_REGISTRY/frontend
+    newTag: IMAGE_TAG

@@ -5,10 +5,8 @@ resources:
   - namespace.yaml
   - platform-config.yaml
   - data-platform.yaml
-  - observability.yaml
   - spring-services.yaml
   - frontend.yaml
 labels:
   - pairs:
       app.kubernetes.io/part-of: payment-ledger-system
-

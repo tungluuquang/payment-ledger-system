@@ -84,6 +84,13 @@ config_for() {
   esac
 }
 
+cloud_sql_label_for() {
+  case "$1" in
+    service-discovery|api-gateway) ;;
+    *) printf '%s\n' '    platform.payment-ledger.io/cloud-sql: "true"' ;;
+  esac
+}
+
 : > "${OUTPUT}"
 separator=""
 
@@ -105,6 +112,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ${service}
+  labels:
+    app.kubernetes.io/name: ${service}
+    platform.payment-ledger.io/runtime: "true"
+$(cloud_sql_label_for "${service}")
 spec:
   replicas: 1
   revisionHistoryLimit: 2
@@ -125,7 +136,15 @@ spec:
         prometheus.io/path: /actuator/prometheus
         prometheus.io/port: "${port}"
     spec:
+      automountServiceAccountToken: false
       terminationGracePeriodSeconds: 45
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: ${service}
           image: payment-ledger/${service}:latest
@@ -140,6 +159,12 @@ spec:
           env:
             - name: JAVA_TOOL_OPTIONS
               value: -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
           ports:
             - name: http
               containerPort: ${port}
@@ -163,6 +188,9 @@ spec:
             preStop:
               exec:
                 command: [sh, -c, "sleep 5"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           resources:
             requests:
               cpu: 100m
@@ -170,6 +198,9 @@ spec:
             limits:
               cpu: 750m
               memory: 768Mi
+      volumes:
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service

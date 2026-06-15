@@ -1,0 +1,88 @@
+name: Deploy to GKE
+
+on:
+  workflow_run:
+    workflows:
+      - Build and Publish
+    types:
+      - completed
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Artifact Registry image tag to deploy
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: production-gke
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: production
+    env:
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      GAR_LOCATION: ${{ vars.GAR_LOCATION }}
+      GAR_REPOSITORY: ${{ vars.GAR_REPOSITORY }}
+      GKE_CLUSTER: ${{ vars.GKE_CLUSTER }}
+      GKE_LOCATION: ${{ vars.GKE_LOCATION }}
+      GKE_HOSTNAME: ${{ vars.GKE_HOSTNAME }}
+      GKE_STATIC_IP_NAME: ${{ vars.GKE_STATIC_IP_NAME }}
+      CLOUD_SQL_INSTANCE_CONNECTION_NAME: ${{ vars.CLOUD_SQL_INSTANCE_CONNECTION_NAME }}
+      GCP_RUNTIME_SERVICE_ACCOUNT: ${{ vars.GCP_RUNTIME_SERVICE_ACCOUNT }}
+      IMAGE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.image_tag || github.event.workflow_run.head_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_CICD_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - uses: google-github-actions/get-gke-credentials@v3
+        with:
+          cluster_name: ${{ env.GKE_CLUSTER }}
+          location: ${{ env.GKE_LOCATION }}
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Synchronize Secret Manager values
+        run: ./scripts/sync-gke-secrets.sh
+
+      - name: Render and deploy
+        run: |
+          ./scripts/render-gke-manifests.sh >/tmp/payment-ledger-gke.yaml
+          kubectl apply --server-side --field-manager=github-actions -f /tmp/payment-ledger-gke.yaml
+
+      - name: Verify rollouts
+        run: |
+          kubectl -n payment-ledger rollout status deployment --all --timeout=15m
+          kubectl -n payment-ledger rollout status statefulset/kafka --timeout=15m
+
+      - name: Smoke test
+        env:
+          GKE_BASE_URL: https://${{ env.GKE_HOSTNAME }}
+          GKE_SMOKE_ACCESS_TOKEN: ${{ secrets.GKE_SMOKE_ACCESS_TOKEN }}
+        run: ./scripts/gke-smoke-test.sh
+
+      - name: Collect diagnostics on failure
+        if: failure()
+        run: |
+          kubectl -n payment-ledger get pods,deployments,statefulsets,ingress
+          kubectl -n payment-ledger describe ingress payment-ledger
+          kubectl -n payment-ledger get events --sort-by=.lastTimestamp | tail -100

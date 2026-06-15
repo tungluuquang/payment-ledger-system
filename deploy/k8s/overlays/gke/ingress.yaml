@@ -1,0 +1,87 @@
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: frontend-backend
+spec:
+  healthCheck:
+    checkIntervalSec: 10
+    timeoutSec: 5
+    healthyThreshold: 1
+    unhealthyThreshold: 3
+    type: HTTP
+    requestPath: /
+    port: 8080
+  timeoutSec: 30
+  connectionDraining:
+    drainingTimeoutSec: 30
+---
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: api-gateway-backend
+spec:
+  healthCheck:
+    checkIntervalSec: 10
+    timeoutSec: 5
+    healthyThreshold: 1
+    unhealthyThreshold: 3
+    type: HTTP
+    requestPath: /actuator/health
+    port: 8080
+  timeoutSec: 30
+  connectionDraining:
+    drainingTimeoutSec: 30
+---
+apiVersion: networking.gke.io/v1beta1
+kind: FrontendConfig
+metadata:
+  name: payment-ledger-frontend
+spec:
+  redirectToHttps:
+    enabled: true
+    responseCodeName: MOVED_PERMANENTLY_DEFAULT
+---
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: payment-ledger-certificate
+spec:
+  domains:
+    - GKE_HOSTNAME
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: payment-ledger
+  annotations:
+    kubernetes.io/ingress.class: gce
+    kubernetes.io/ingress.global-static-ip-name: GKE_STATIC_IP_NAME
+    networking.gke.io/managed-certificates: payment-ledger-certificate
+    networking.gke.io/v1beta1.FrontendConfig: payment-ledger-frontend
+spec:
+  rules:
+    - host: GKE_HOSTNAME
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 8080
+          - path: /actuator/health
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+

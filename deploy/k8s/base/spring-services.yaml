@@ -10,6 +10,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: service-discovery
+  labels:
+    app.kubernetes.io/name: service-discovery
+    platform.payment-ledger.io/runtime: "true"
+
 spec:
   replicas: 1
   revisionHistoryLimit: 2
@@ -30,7 +34,15 @@ spec:
         prometheus.io/path: /actuator/prometheus
         prometheus.io/port: "8761"
     spec:
+      automountServiceAccountToken: false
       terminationGracePeriodSeconds: 45
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: service-discovery
           image: payment-ledger/service-discovery:latest
@@ -45,6 +57,12 @@ spec:
           env:
             - name: JAVA_TOOL_OPTIONS
               value: -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
           ports:
             - name: http
               containerPort: 8761
@@ -68,6 +86,9 @@ spec:
             preStop:
               exec:
                 command: [sh, -c, "sleep 5"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           resources:
             requests:
               cpu: 100m
@@ -75,6 +96,9 @@ spec:
             limits:
               cpu: 750m
               memory: 768Mi
+      volumes:
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -111,6 +135,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: authorization-server
+  labels:
+    app.kubernetes.io/name: authorization-server
+    platform.payment-ledger.io/runtime: "true"
+    platform.payment-ledger.io/cloud-sql: "true"
 spec:
   replicas: 1
   revisionHistoryLimit: 2
@@ -131,7 +159,15 @@ spec:
         prometheus.io/path: /actuator/prometheus
         prometheus.io/port: "9000"
     spec:
+      automountServiceAccountToken: false
       terminationGracePeriodSeconds: 45
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: authorization-server
           image: payment-ledger/authorization-server:latest
@@ -146,6 +182,12 @@ spec:
           env:
             - name: JAVA_TOOL_OPTIONS
               value: -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
           ports:
             - name: http
               containerPort: 9000
@@ -169,6 +211,9 @@ spec:
             preStop:
               exec:
                 command: [sh, -c, "sleep 5"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           resources:
             requests:
               cpu: 100m
@@ -176,6 +221,9 @@ spec:
             limits:
               cpu: 750m
               memory: 768Mi
+      volumes:
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -211,6 +259,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: user-service
+  labels:
+    app.kubernetes.io/name: user-service
+    platform.payment-ledger.io/runtime: "true"
+    platform.payment-ledger.io/cloud-sql: "true"
 spec:
   replicas: 1
   revisionHistoryLimit: 2
@@ -231,7 +283,15 @@ spec:
         prometheus.io/path: /actuator/prometheus
         prometheus.io/port: "8086"
     spec:
+      automountServiceAccountToken: false
       terminationGracePeriodSeconds: 45
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: user-service
           image: payment-ledger/user-service:latest
@@ -246,6 +306,12 @@ spec:
           env:
             - name: JAVA_TOOL_OPTIONS
               value: -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
           ports:
             - name: http
               containerPort: 8086
@@ -269,6 +335,9 @@ spec:
             preStop:
               exec:
                 command: [sh, -c, "sleep 5"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           resources:
             requests:
               cpu: 100m
@@ -276,6 +345,9 @@ spec:
             limits:
               cpu: 750m
               memory: 768Mi
+      volumes:
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -307,6 +379,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: api-gateway
+  labels:
+    app.kubernetes.io/name: api-gateway
+    platform.payment-ledger.io/runtime: "true"
+
 spec:
   replicas: 1
   revisionHistoryLimit: 2
@@ -327,7 +403,15 @@ spec:
         prometheus.io/path: /actuator/prometheus
         prometheus.io/port: "8080"
     spec:
+      automountServiceAccountToken: false
       terminationGracePeriodSeconds: 45
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: api-gateway
           image: payment-ledger/api-gateway:latest
@@ -342,6 +426,12 @@ spec:
           env:
             - name: JAVA_TOOL_OPTIONS
               value: -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
           ports:
             - name: http
               containerPort: 8080
@@ -365,6 +455,9 @@ spec:
             preStop:
               exec:
                 command: [sh, -c, "sleep 5"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           resources:
             requests:
               cpu: 100m
@@ -372,6 +465,9 @@ spec:
             limits:
               cpu: 750m
               memory: 768Mi
+      volumes:
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -403,6 +499,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: command-service
+  labels:
+    app.kubernetes.io/name: command-service
+    platform.payment-ledger.io/runtime: "true"
+    platform.payment-ledger.io/cloud-sql: "true"
 spec:
   replicas: 1
   revisionHistoryLimit: 2
@@ -423,7 +523,15 @@ spec:
         prometheus.io/path: /actuator/prometheus
         prometheus.io/port: "8081"
     spec:
+      automountServiceAccountToken: false
       terminationGracePeriodSeconds: 45
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: command-service
           image: payment-ledger/command-service:latest
@@ -438,6 +546,12 @@ spec:
           env:
             - name: JAVA_TOOL_OPTIONS
               value: -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
           ports:
             - name: http
               containerPort: 8081
@@ -461,6 +575,9 @@ spec:
             preStop:
               exec:
                 command: [sh, -c, "sleep 5"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           resources:
             requests:
               cpu: 100m
@@ -468,6 +585,9 @@ spec:
             limits:
               cpu: 750m
               memory: 768Mi
+      volumes:
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -499,6 +619,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: saga-service
+  labels:
+    app.kubernetes.io/name: saga-service
+    platform.payment-ledger.io/runtime: "true"
+    platform.payment-ledger.io/cloud-sql: "true"
 spec:
   replicas: 1
   revisionHistoryLimit: 2
@@ -519,7 +643,15 @@ spec:
         prometheus.io/path: /actuator/prometheus
         prometheus.io/port: "8087"
     spec:
+      automountServiceAccountToken: false
       terminationGracePeriodSeconds: 45
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: saga-service
           image: payment-ledger/saga-service:latest
@@ -534,6 +666,12 @@ spec:
           env:
             - name: JAVA_TOOL_OPTIONS
               value: -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
           ports:
             - name: http
               containerPort: 8087
@@ -557,6 +695,9 @@ spec:
             preStop:
               exec:
                 command: [sh, -c, "sleep 5"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           resources:
             requests:
               cpu: 100m
@@ -564,6 +705,9 @@ spec:
             limits:
               cpu: 750m
               memory: 768Mi
+      volumes:
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -595,6 +739,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: fraud-check-service
+  labels:
+    app.kubernetes.io/name: fraud-check-service
+    platform.payment-ledger.io/runtime: "true"
+    platform.payment-ledger.io/cloud-sql: "true"
 spec:
   replicas: 1
   revisionHistoryLimit: 2
@@ -615,7 +763,15 @@ spec:
         prometheus.io/path: /actuator/prometheus
         prometheus.io/port: "8084"
     spec:
+      automountServiceAccountToken: false
       terminationGracePeriodSeconds: 45
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: fraud-check-service
           image: payment-ledger/fraud-check-service:latest
@@ -630,6 +786,12 @@ spec:
           env:
             - name: JAVA_TOOL_OPTIONS
               value: -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
           ports:
             - name: http
               containerPort: 8084
@@ -653,6 +815,9 @@ spec:
             preStop:
               exec:
                 command: [sh, -c, "sleep 5"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           resources:
             requests:
               cpu: 100m
@@ -660,6 +825,9 @@ spec:
             limits:
               cpu: 750m
               memory: 768Mi
+      volumes:
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -691,6 +859,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: account-service
+  labels:
+    app.kubernetes.io/name: account-service
+    platform.payment-ledger.io/runtime: "true"
+    platform.payment-ledger.io/cloud-sql: "true"
 spec:
   replicas: 1
   revisionHistoryLimit: 2
@@ -711,7 +883,15 @@ spec:
         prometheus.io/path: /actuator/prometheus
         prometheus.io/port: "8082"
     spec:
+      automountServiceAccountToken: false
       terminationGracePeriodSeconds: 45
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: account-service
           image: payment-ledger/account-service:latest
@@ -726,6 +906,12 @@ spec:
           env:
             - name: JAVA_TOOL_OPTIONS
               value: -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
           ports:
             - name: http
               containerPort: 8082
@@ -749,6 +935,9 @@ spec:
             preStop:
               exec:
                 command: [sh, -c, "sleep 5"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           resources:
             requests:
               cpu: 100m
@@ -756,6 +945,9 @@ spec:
             limits:
               cpu: 750m
               memory: 768Mi
+      volumes:
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -787,6 +979,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ledger-service
+  labels:
+    app.kubernetes.io/name: ledger-service
+    platform.payment-ledger.io/runtime: "true"
+    platform.payment-ledger.io/cloud-sql: "true"
 spec:
   replicas: 1
   revisionHistoryLimit: 2
@@ -807,7 +1003,15 @@ spec:
         prometheus.io/path: /actuator/prometheus
         prometheus.io/port: "8083"
     spec:
+      automountServiceAccountToken: false
       terminationGracePeriodSeconds: 45
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: ledger-service
           image: payment-ledger/ledger-service:latest
@@ -822,6 +1026,12 @@ spec:
           env:
             - name: JAVA_TOOL_OPTIONS
               value: -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
           ports:
             - name: http
               containerPort: 8083
@@ -845,6 +1055,9 @@ spec:
             preStop:
               exec:
                 command: [sh, -c, "sleep 5"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           resources:
             requests:
               cpu: 100m
@@ -852,6 +1065,9 @@ spec:
             limits:
               cpu: 750m
               memory: 768Mi
+      volumes:
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -883,6 +1099,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: projection-service
+  labels:
+    app.kubernetes.io/name: projection-service
+    platform.payment-ledger.io/runtime: "true"
+    platform.payment-ledger.io/cloud-sql: "true"
 spec:
   replicas: 1
   revisionHistoryLimit: 2
@@ -903,7 +1123,15 @@ spec:
         prometheus.io/path: /actuator/prometheus
         prometheus.io/port: "8085"
     spec:
+      automountServiceAccountToken: false
       terminationGracePeriodSeconds: 45
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: projection-service
           image: payment-ledger/projection-service:latest
@@ -918,6 +1146,12 @@ spec:
           env:
             - name: JAVA_TOOL_OPTIONS
               value: -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
           ports:
             - name: http
               containerPort: 8085
@@ -941,6 +1175,9 @@ spec:
             preStop:
               exec:
                 command: [sh, -c, "sleep 5"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           resources:
             requests:
               cpu: 100m
@@ -948,6 +1185,9 @@ spec:
             limits:
               cpu: 750m
               memory: 768Mi
+      volumes:
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -980,6 +1220,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: reconciliation-service
+  labels:
+    app.kubernetes.io/name: reconciliation-service
+    platform.payment-ledger.io/runtime: "true"
+    platform.payment-ledger.io/cloud-sql: "true"
 spec:
   replicas: 1
   revisionHistoryLimit: 2
@@ -1000,7 +1244,15 @@ spec:
         prometheus.io/path: /actuator/prometheus
         prometheus.io/port: "8088"
     spec:
+      automountServiceAccountToken: false
       terminationGracePeriodSeconds: 45
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: reconciliation-service
           image: payment-ledger/reconciliation-service:latest
@@ -1015,6 +1267,12 @@ spec:
           env:
             - name: JAVA_TOOL_OPTIONS
               value: -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
           ports:
             - name: http
               containerPort: 8088
@@ -1038,6 +1296,9 @@ spec:
             preStop:
               exec:
                 command: [sh, -c, "sleep 5"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           resources:
             requests:
               cpu: 100m
@@ -1045,6 +1306,9 @@ spec:
             limits:
               cpu: 750m
               memory: 768Mi
+      volumes:
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -1076,6 +1340,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: analytics-service
+  labels:
+    app.kubernetes.io/name: analytics-service
+    platform.payment-ledger.io/runtime: "true"
+    platform.payment-ledger.io/cloud-sql: "true"
 spec:
   replicas: 1
   revisionHistoryLimit: 2
@@ -1096,7 +1364,15 @@ spec:
         prometheus.io/path: /actuator/prometheus
         prometheus.io/port: "8089"
     spec:
+      automountServiceAccountToken: false
       terminationGracePeriodSeconds: 45
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: analytics-service
           image: payment-ledger/analytics-service:latest
@@ -1111,6 +1387,12 @@ spec:
           env:
             - name: JAVA_TOOL_OPTIONS
               value: -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
           ports:
             - name: http
               containerPort: 8089
@@ -1134,6 +1416,9 @@ spec:
             preStop:
               exec:
                 command: [sh, -c, "sleep 5"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           resources:
             requests:
               cpu: 100m
@@ -1141,6 +1426,9 @@ spec:
             limits:
               cpu: 750m
               memory: 768Mi
+      volumes:
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -1172,6 +1460,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: audit-service
+  labels:
+    app.kubernetes.io/name: audit-service
+    platform.payment-ledger.io/runtime: "true"
+    platform.payment-ledger.io/cloud-sql: "true"
 spec:
   replicas: 1
   revisionHistoryLimit: 2
@@ -1192,7 +1484,15 @@ spec:
         prometheus.io/path: /actuator/prometheus
         prometheus.io/port: "8090"
     spec:
+      automountServiceAccountToken: false
       terminationGracePeriodSeconds: 45
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: audit-service
           image: payment-ledger/audit-service:latest
@@ -1207,6 +1507,12 @@ spec:
           env:
             - name: JAVA_TOOL_OPTIONS
               value: -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
           ports:
             - name: http
               containerPort: 8090
@@ -1230,6 +1536,9 @@ spec:
             preStop:
               exec:
                 command: [sh, -c, "sleep 5"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           resources:
             requests:
               cpu: 100m
@@ -1237,6 +1546,9 @@ spec:
             limits:
               cpu: 750m
               memory: 768Mi
+      volumes:
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
