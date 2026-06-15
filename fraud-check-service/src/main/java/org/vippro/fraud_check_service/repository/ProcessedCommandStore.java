@@ -5,6 +5,7 @@ import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -54,14 +55,14 @@ public class ProcessedCommandStore {
                         H2_INSERT,
                         commandId,
                         commandType,
-                        processedAt,
+                        Timestamp.from(processedAt),
                         commandId
                 )
                 : jdbcTemplate.update(
                         POSTGRES_INSERT,
                         commandId,
                         commandType,
-                        processedAt
+                        Timestamp.from(processedAt)
                 );
         return inserted == 1;
     }

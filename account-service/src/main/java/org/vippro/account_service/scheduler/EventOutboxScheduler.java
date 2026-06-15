@@ -11,6 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.vippro.account_service.entity.EventOutbox;
 import org.vippro.account_service.enums.EventOutboxStatus;
 import org.vippro.account_service.repository.EventOutboxRepository;
+import org.vippro.event.AccountCredited;
+import org.vippro.event.AccountCreditFailed;
+import org.vippro.event.AccountCreditReversed;
 import org.vippro.event.AccountDebitFailed;
 import org.vippro.event.AccountDebitReversed;
 import org.vippro.event.AccountDebited;
@@ -98,7 +101,7 @@ public class EventOutboxScheduler {
         eventOutboxRepository.saveAll(events);
     }
 
-    private Object deserialize(EventOutbox outbox) throws Exception {
+    Object deserialize(EventOutbox outbox) throws Exception {
         return switch (outbox.getEventType()) {
             case "AccountDebited" -> objectMapper.readValue(
                     outbox.getPayload(),
@@ -111,6 +114,18 @@ public class EventOutboxScheduler {
             case "AccountDebitReversed" -> objectMapper.readValue(
                     outbox.getPayload(),
                     AccountDebitReversed.class
+            );
+            case "AccountCredited" -> objectMapper.readValue(
+                    outbox.getPayload(),
+                    AccountCredited.class
+            );
+            case "AccountCreditFailed" -> objectMapper.readValue(
+                    outbox.getPayload(),
+                    AccountCreditFailed.class
+            );
+            case "AccountCreditReversed" -> objectMapper.readValue(
+                    outbox.getPayload(),
+                    AccountCreditReversed.class
             );
             default -> throw new IllegalArgumentException(
                     "Unknown account event type: " + outbox.getEventType()

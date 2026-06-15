@@ -5,6 +5,7 @@ import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -69,8 +70,8 @@ public class ProjectionEventStore {
                         correlationId,
                         eventType,
                         payload,
-                        occurredAt,
-                        processedAt,
+                        Timestamp.from(occurredAt),
+                        Timestamp.from(processedAt),
                         eventId
                 )
                 : jdbcTemplate.update(
@@ -80,8 +81,8 @@ public class ProjectionEventStore {
                         correlationId,
                         eventType,
                         payload,
-                        occurredAt,
-                        processedAt
+                        Timestamp.from(occurredAt),
+                        Timestamp.from(processedAt)
                 );
         return inserted == 1;
     }
