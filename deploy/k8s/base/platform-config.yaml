@@ -1,0 +1,55 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: platform-config
+data:
+  HOST: postgres
+  POSTGRES_PORT: "5432"
+  KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+  EUREKA_SERVER_URL: http://service-discovery:8761/eureka/
+  EUREKA_CLIENT_ENABLED: "true"
+  EUREKA_PREFER_IP_ADDRESS: "true"
+  AUTH_ISSUER: https://replace-me.example.com
+  AUTH_JWK_SET_URI: http://authorization-server:9000/oauth2/jwks
+  MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,prometheus
+  MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED: "true"
+  MANAGEMENT_TRACING_SAMPLING_PROBABILITY: "1.0"
+  MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+  ZIPKIN_ENDPOINT: http://zipkin:9411/api/v2/spans
+  TRACING_SAMPLING_PROBABILITY: "1.0"
+  SPRING_KAFKA_LISTENER_OBSERVATION_ENABLED: "true"
+  SPRING_KAFKA_TEMPLATE_OBSERVATION_ENABLED: "true"
+  LOGGING_PATTERN_CONSOLE: >-
+    timestamp=%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} level=%p service=${spring.application.name:-unknown}
+    trace_id=%X{traceId:-} span_id=%X{spanId:-} logger=%logger{36} message="%replace(%m){'[\r\n]+',' '}"%n
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: platform-secrets
+type: Opaque
+stringData:
+  POSTGRES_USER: replace-me
+  POSTGRES_PASSWORD: replace-me
+  AUTH_DB_USER: replace-me
+  AUTH_DB_PASSWORD: replace-me
+  AUTH_CLIENT_SECRET: replace-me
+  USER_BOOTSTRAP_ADMIN_PASSWORD: replace-me
+  GF_SECURITY_ADMIN_USER: replace-me
+  GF_SECURITY_ADMIN_PASSWORD: replace-me
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init
+data:
+  init-databases.sql: |
+    CREATE DATABASE command_db;
+    CREATE DATABASE saga_db;
+    CREATE DATABASE fraud_db;
+    CREATE DATABASE account_db;
+    CREATE DATABASE ledger_db;
+    CREATE DATABASE projection_db;
+    CREATE DATABASE user_db;
+    CREATE DATABASE analytics_db;
+    CREATE DATABASE audit_db;

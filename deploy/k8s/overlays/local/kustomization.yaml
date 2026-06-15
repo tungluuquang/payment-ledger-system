@@ -1,0 +1,93 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+patches:
+  - target:
+      kind: ConfigMap
+      name: platform-config
+    patch: |-
+      - op: replace
+        path: /data/AUTH_ISSUER
+        value: http://payment-ledger.local:30080
+  - target:
+      kind: ConfigMap
+      name: authorization-server-config
+    patch: |-
+      - op: replace
+        path: /data/AUTH_SPA_REDIRECT_URI
+        value: http://payment-ledger.local:30080/callback
+      - op: replace
+        path: /data/AUTH_SPA_ORIGIN
+        value: http://payment-ledger.local:30080
+  - target:
+      kind: ConfigMap
+      name: api-gateway-config
+    patch: |-
+      - op: replace
+        path: /data/GATEWAY_ALLOWED_ORIGINS
+        value: http://payment-ledger.local:30080
+  - target:
+      kind: Secret
+      name: platform-secrets
+    patch: |-
+      - op: replace
+        path: /stringData
+        value:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          AUTH_DB_USER: postgres
+          AUTH_DB_PASSWORD: postgres
+          AUTH_CLIENT_SECRET: local-client-secret
+          USER_BOOTSTRAP_ADMIN_PASSWORD: change-me-now
+          GF_SECURITY_ADMIN_USER: admin
+          GF_SECURITY_ADMIN_PASSWORD: admin
+  - target:
+      kind: Service
+      name: frontend
+    patch: |-
+      - op: replace
+        path: /spec/type
+        value: NodePort
+      - op: add
+        path: /spec/ports/0/nodePort
+        value: 30080
+  - target:
+      kind: Service
+      name: api-gateway
+    patch: |-
+      - op: replace
+        path: /spec/type
+        value: NodePort
+      - op: add
+        path: /spec/ports/0/nodePort
+        value: 30081
+images:
+  - name: payment-ledger/service-discovery
+    newTag: local
+  - name: payment-ledger/authorization-server
+    newTag: local
+  - name: payment-ledger/user-service
+    newTag: local
+  - name: payment-ledger/api-gateway
+    newTag: local
+  - name: payment-ledger/command-service
+    newTag: local
+  - name: payment-ledger/saga-service
+    newTag: local
+  - name: payment-ledger/fraud-check-service
+    newTag: local
+  - name: payment-ledger/account-service
+    newTag: local
+  - name: payment-ledger/ledger-service
+    newTag: local
+  - name: payment-ledger/projection-service
+    newTag: local
+  - name: payment-ledger/reconciliation-service
+    newTag: local
+  - name: payment-ledger/analytics-service
+    newTag: local
+  - name: payment-ledger/audit-service
+    newTag: local
+  - name: payment-ledger/frontend
+    newTag: local

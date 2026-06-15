@@ -1,0 +1,1256 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: service-discovery-config
+data:
+  PORT: "8761"
+  EUREKA_HOSTNAME: service-discovery
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-discovery
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: service-discovery
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: service-discovery
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "8761"
+    spec:
+      terminationGracePeriodSeconds: 45
+      containers:
+        - name: service-discovery
+          image: payment-ledger/service-discovery:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: platform-config
+            - configMapRef:
+                name: service-discovery-config
+            - secretRef:
+                name: platform-secrets
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError
+          ports:
+            - name: http
+              containerPort: 8761
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 24
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          lifecycle:
+            preStop:
+              exec:
+                command: [sh, -c, "sleep 5"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 750m
+              memory: 768Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-discovery
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: /actuator/prometheus
+    prometheus.io/port: "8761"
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: service-discovery
+  ports:
+    - name: http
+      port: 8761
+      targetPort: http
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authorization-server-config
+data:
+  PORT: "9000"
+  AUTH_DB_HOST: postgres
+  AUTH_DB_PORT: "5432"
+  AUTH_DB_NAME: user_db
+  AUTH_SPA_CLIENT_ID: payment-ledger-spa
+  AUTH_SPA_REDIRECT_URI: https://replace-me.example.com/callback
+  AUTH_SPA_ORIGIN: https://replace-me.example.com
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: authorization-server
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: authorization-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: authorization-server
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "9000"
+    spec:
+      terminationGracePeriodSeconds: 45
+      containers:
+        - name: authorization-server
+          image: payment-ledger/authorization-server:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: platform-config
+            - configMapRef:
+                name: authorization-server-config
+            - secretRef:
+                name: platform-secrets
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError
+          ports:
+            - name: http
+              containerPort: 9000
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 24
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          lifecycle:
+            preStop:
+              exec:
+                command: [sh, -c, "sleep 5"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 750m
+              memory: 768Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: authorization-server
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: /actuator/prometheus
+    prometheus.io/port: "9000"
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: authorization-server
+  ports:
+    - name: http
+      port: 9000
+      targetPort: http
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: user-service-config
+data:
+  PORT: "8086"
+  POSTGRES_DB: user_db
+  USER_BOOTSTRAP_ADMIN_ENABLED: "true"
+  USER_BOOTSTRAP_ADMIN_USERNAME: admin
+  USER_BOOTSTRAP_ADMIN_EMAIL: admin@example.com
+  USER_BOOTSTRAP_ADMIN_FULL_NAME: System Admin
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: user-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: user-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "8086"
+    spec:
+      terminationGracePeriodSeconds: 45
+      containers:
+        - name: user-service
+          image: payment-ledger/user-service:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: platform-config
+            - configMapRef:
+                name: user-service-config
+            - secretRef:
+                name: platform-secrets
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError
+          ports:
+            - name: http
+              containerPort: 8086
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 24
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          lifecycle:
+            preStop:
+              exec:
+                command: [sh, -c, "sleep 5"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 750m
+              memory: 768Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: /actuator/prometheus
+    prometheus.io/port: "8086"
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: user-service
+  ports:
+    - name: http
+      port: 8086
+      targetPort: http
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-gateway-config
+data:
+  PORT: "8080"
+  GATEWAY_ALLOWED_ORIGINS: https://replace-me.example.com
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: api-gateway
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: api-gateway
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "8080"
+    spec:
+      terminationGracePeriodSeconds: 45
+      containers:
+        - name: api-gateway
+          image: payment-ledger/api-gateway:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: platform-config
+            - configMapRef:
+                name: api-gateway-config
+            - secretRef:
+                name: platform-secrets
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 24
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          lifecycle:
+            preStop:
+              exec:
+                command: [sh, -c, "sleep 5"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 750m
+              memory: 768Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: /actuator/prometheus
+    prometheus.io/port: "8080"
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: api-gateway
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: command-service-config
+data:
+  PORT: "8081"
+  POSTGRES_DB: command_db
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: command-service
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: command-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: command-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "8081"
+    spec:
+      terminationGracePeriodSeconds: 45
+      containers:
+        - name: command-service
+          image: payment-ledger/command-service:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: platform-config
+            - configMapRef:
+                name: command-service-config
+            - secretRef:
+                name: platform-secrets
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError
+          ports:
+            - name: http
+              containerPort: 8081
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 24
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          lifecycle:
+            preStop:
+              exec:
+                command: [sh, -c, "sleep 5"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 750m
+              memory: 768Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: command-service
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: /actuator/prometheus
+    prometheus.io/port: "8081"
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: command-service
+  ports:
+    - name: http
+      port: 8081
+      targetPort: http
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: saga-service-config
+data:
+  PORT: "8087"
+  POSTGRES_DB: saga_db
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: saga-service
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: saga-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: saga-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "8087"
+    spec:
+      terminationGracePeriodSeconds: 45
+      containers:
+        - name: saga-service
+          image: payment-ledger/saga-service:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: platform-config
+            - configMapRef:
+                name: saga-service-config
+            - secretRef:
+                name: platform-secrets
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError
+          ports:
+            - name: http
+              containerPort: 8087
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 24
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          lifecycle:
+            preStop:
+              exec:
+                command: [sh, -c, "sleep 5"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 750m
+              memory: 768Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: saga-service
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: /actuator/prometheus
+    prometheus.io/port: "8087"
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: saga-service
+  ports:
+    - name: http
+      port: 8087
+      targetPort: http
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fraud-check-service-config
+data:
+  PORT: "8084"
+  POSTGRES_DB: fraud_db
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fraud-check-service
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: fraud-check-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: fraud-check-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "8084"
+    spec:
+      terminationGracePeriodSeconds: 45
+      containers:
+        - name: fraud-check-service
+          image: payment-ledger/fraud-check-service:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: platform-config
+            - configMapRef:
+                name: fraud-check-service-config
+            - secretRef:
+                name: platform-secrets
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError
+          ports:
+            - name: http
+              containerPort: 8084
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 24
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          lifecycle:
+            preStop:
+              exec:
+                command: [sh, -c, "sleep 5"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 750m
+              memory: 768Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fraud-check-service
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: /actuator/prometheus
+    prometheus.io/port: "8084"
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: fraud-check-service
+  ports:
+    - name: http
+      port: 8084
+      targetPort: http
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: account-service-config
+data:
+  PORT: "8082"
+  POSTGRES_DB: account_db
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: account-service
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: account-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: account-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "8082"
+    spec:
+      terminationGracePeriodSeconds: 45
+      containers:
+        - name: account-service
+          image: payment-ledger/account-service:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: platform-config
+            - configMapRef:
+                name: account-service-config
+            - secretRef:
+                name: platform-secrets
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError
+          ports:
+            - name: http
+              containerPort: 8082
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 24
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          lifecycle:
+            preStop:
+              exec:
+                command: [sh, -c, "sleep 5"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 750m
+              memory: 768Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: account-service
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: /actuator/prometheus
+    prometheus.io/port: "8082"
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: account-service
+  ports:
+    - name: http
+      port: 8082
+      targetPort: http
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ledger-service-config
+data:
+  PORT: "8083"
+  POSTGRES_DB: ledger_db
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ledger-service
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ledger-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ledger-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "8083"
+    spec:
+      terminationGracePeriodSeconds: 45
+      containers:
+        - name: ledger-service
+          image: payment-ledger/ledger-service:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: platform-config
+            - configMapRef:
+                name: ledger-service-config
+            - secretRef:
+                name: platform-secrets
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError
+          ports:
+            - name: http
+              containerPort: 8083
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 24
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          lifecycle:
+            preStop:
+              exec:
+                command: [sh, -c, "sleep 5"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 750m
+              memory: 768Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ledger-service
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: /actuator/prometheus
+    prometheus.io/port: "8083"
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: ledger-service
+  ports:
+    - name: http
+      port: 8083
+      targetPort: http
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: projection-service-config
+data:
+  PORT: "8085"
+  POSTGRES_DB: projection_db
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: projection-service
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: projection-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: projection-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "8085"
+    spec:
+      terminationGracePeriodSeconds: 45
+      containers:
+        - name: projection-service
+          image: payment-ledger/projection-service:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: platform-config
+            - configMapRef:
+                name: projection-service-config
+            - secretRef:
+                name: platform-secrets
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError
+          ports:
+            - name: http
+              containerPort: 8085
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 24
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          lifecycle:
+            preStop:
+              exec:
+                command: [sh, -c, "sleep 5"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 750m
+              memory: 768Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: projection-service
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: /actuator/prometheus
+    prometheus.io/port: "8085"
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: projection-service
+  ports:
+    - name: http
+      port: 8085
+      targetPort: http
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: reconciliation-service-config
+data:
+  PORT: "8088"
+  ACCOUNT_POSTGRES_DB: account_db
+  LEDGER_POSTGRES_DB: ledger_db
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reconciliation-service
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: reconciliation-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: reconciliation-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "8088"
+    spec:
+      terminationGracePeriodSeconds: 45
+      containers:
+        - name: reconciliation-service
+          image: payment-ledger/reconciliation-service:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: platform-config
+            - configMapRef:
+                name: reconciliation-service-config
+            - secretRef:
+                name: platform-secrets
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError
+          ports:
+            - name: http
+              containerPort: 8088
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 24
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          lifecycle:
+            preStop:
+              exec:
+                command: [sh, -c, "sleep 5"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 750m
+              memory: 768Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reconciliation-service
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: /actuator/prometheus
+    prometheus.io/port: "8088"
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: reconciliation-service
+  ports:
+    - name: http
+      port: 8088
+      targetPort: http
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: analytics-service-config
+data:
+  PORT: "8089"
+  POSTGRES_DB: analytics_db
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analytics-service
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: analytics-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: analytics-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "8089"
+    spec:
+      terminationGracePeriodSeconds: 45
+      containers:
+        - name: analytics-service
+          image: payment-ledger/analytics-service:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: platform-config
+            - configMapRef:
+                name: analytics-service-config
+            - secretRef:
+                name: platform-secrets
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError
+          ports:
+            - name: http
+              containerPort: 8089
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 24
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          lifecycle:
+            preStop:
+              exec:
+                command: [sh, -c, "sleep 5"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 750m
+              memory: 768Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: analytics-service
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: /actuator/prometheus
+    prometheus.io/port: "8089"
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: analytics-service
+  ports:
+    - name: http
+      port: 8089
+      targetPort: http
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: audit-service-config
+data:
+  PORT: "8090"
+  POSTGRES_DB: audit_db
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: audit-service
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: audit-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: audit-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "8090"
+    spec:
+      terminationGracePeriodSeconds: 45
+      containers:
+        - name: audit-service
+          image: payment-ledger/audit-service:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: platform-config
+            - configMapRef:
+                name: audit-service-config
+            - secretRef:
+                name: platform-secrets
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError
+          ports:
+            - name: http
+              containerPort: 8090
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 24
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          lifecycle:
+            preStop:
+              exec:
+                command: [sh, -c, "sleep 5"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 750m
+              memory: 768Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: audit-service
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/path: /actuator/prometheus
+    prometheus.io/port: "8090"
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: audit-service
+  ports:
+    - name: http
+      port: 8090
+      targetPort: http
