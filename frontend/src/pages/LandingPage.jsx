@@ -17,7 +17,9 @@ import { Field } from "../components/ui/Modal";
 
 export function LandingPage() {
   const { login } = useAuth();
-  const [registering, setRegistering] = useState(false);
+  const [registering, setRegistering] = useState(
+    () => new URLSearchParams(window.location.search).get("register") === "true",
+  );
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [form, setForm] = useState({
@@ -36,7 +38,8 @@ export function LandingPage() {
       setRegistering(false);
       setNotice("Account created. Sign in to continue.");
     } catch (error) {
-      setNotice(error.message);
+      const fieldErrors = Object.values(error.details?.fieldErrors || {});
+      setNotice(fieldErrors.length ? fieldErrors.join(". ") : error.message);
     } finally {
       setBusy(false);
     }
@@ -71,10 +74,10 @@ export function LandingPage() {
             <form onSubmit={register} className="stack">
               <Field label="Full name"><input required value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} placeholder="Nguyen Van An" /></Field>
               <div className="two-columns">
-                <Field label="Username"><input required minLength={3} value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} /></Field>
-                <Field label="Email"><input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
+                <Field label="Username"><input required minLength={3} maxLength={50} pattern="[A-Za-z0-9._-]+" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} /></Field>
+                <Field label="Email"><input required type="email" maxLength={254} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
               </div>
-              <Field label="Password" hint="12+ characters"><input required type="password" minLength={12} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} /></Field>
+              <Field label="Password" hint="12-72 characters"><input required type="password" minLength={12} maxLength={72} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} /></Field>
               {notice && <div className="notice">{notice}</div>}
               <button className="primary-button" disabled={busy}>{busy ? "Creating..." : "Create account"}</button>
             </form>

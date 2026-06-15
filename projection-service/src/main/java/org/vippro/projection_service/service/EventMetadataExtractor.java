@@ -79,6 +79,30 @@ public class EventMetadataExtractor {
                     value.getOccurredAt()
             );
         }
+        if (event instanceof AccountCredited value) {
+            return metadata(
+                    value.getEventId(),
+                    value.getPaymentId(),
+                    value.getCorrelationId(),
+                    value.getOccurredAt()
+            );
+        }
+        if (event instanceof AccountCreditFailed value) {
+            return metadata(
+                    value.getEventId(),
+                    value.getPaymentId(),
+                    value.getCorrelationId(),
+                    value.getOccurredAt()
+            );
+        }
+        if (event instanceof AccountCreditReversed value) {
+            return metadata(
+                    value.getEventId(),
+                    value.getPaymentId(),
+                    value.getCorrelationId(),
+                    value.getOccurredAt()
+            );
+        }
         if (event instanceof JournalEntryRecorded value) {
             return metadata(
                     value.getEventId(),

@@ -5,9 +5,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 @SpringBootTest(properties = {
 		"eureka.client.enabled=false",
@@ -33,6 +35,12 @@ class ApiGatewayApplicationTests {
 						"account-api",
 						"user-api"
 				);
+	}
+
+	@Test
+	void gatewayAndSpringWebAreBinaryCompatible() {
+		assertThatCode(() -> HttpHeaders.class.getMethod("headerSet"))
+				.doesNotThrowAnyException();
 	}
 
 }

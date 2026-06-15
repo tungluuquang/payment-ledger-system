@@ -3,22 +3,24 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>LedgerPay — Error</title>
+    <title>LedgerPay - Error</title>
     <link rel="stylesheet" href="/login.css" />
   </head>
   <body>
-    <main class="login-shell centered-error">
-      <div class="login-card">
+    <main class="auth-page error-page">
+      <div class="page-glow page-glow-one"></div>
+      <div class="page-glow page-glow-two"></div>
+      <section class="auth-card">
         <div class="card-header">
-          <span>Something went wrong</span>
+          <span>SOMETHING WENT WRONG</span>
           <h2>Page not found</h2>
           <p>The resource you requested could not be found. If you think this is a mistake, contact your administrator.</p>
         </div>
-        <div style="margin-top:18px; display:flex; gap:10px;">
-          <a href="/" style="text-decoration:none; display:inline-block; width:100%;"><button style="width:100%; min-height:44px; border-radius:10px; border:none; background:#b8f36b; color:#072; font-weight:700;">Return to landing</button></a>
-          <a href="/login" style="text-decoration:none; display:inline-block; width:100%;"><button style="width:100%; min-height:44px; border-radius:10px; border:1px solid rgba(255,255,255,.12); background:transparent; color:white; font-weight:700;">Go to sign in</button></a>
+        <div class="error-actions">
+          <a href="/home">Return to landing</a>
+          <a href="/login">Go to sign in</a>
         </div>
-      </div>
+      </section>
     </main>
   </body>
 </html>

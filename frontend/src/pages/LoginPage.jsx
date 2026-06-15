@@ -26,8 +26,9 @@ export function LoginPage() {
         <h2>Ready when you are</h2>
         <p>Use LedgerPay single sign-on to continue into your company finance workspace.</p>
         <button className="primary-button login-action" onClick={() => login("/app")}>Sign in securely <ArrowRight size={17} /></button>
-        <div className="auth-divider"><span>Not ready yet?</span></div>
-        <Link className="text-button" to="/">Return to landing page</Link>
+        <div className="auth-divider"><span>New to LedgerPay?</span></div>
+        <Link className="text-button" to="/?register=true">Create an account</Link>
+        <Link className="text-button login-back-link" to="/">Return to landing page</Link>
         <div className="auth-footnote"><LockKeyhole size={13} /> Login is encrypted and never shared.</div>
       </aside>
     </main>

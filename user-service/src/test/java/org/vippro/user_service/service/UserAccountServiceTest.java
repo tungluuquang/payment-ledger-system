@@ -1,6 +1,7 @@
 package org.vippro.user_service.service;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.vippro.user_service.dto.ChangePasswordRequest;
 import org.vippro.user_service.dto.CreateUserRequest;
@@ -37,7 +38,7 @@ class UserAccountServiceTest {
                 "a-strong-password",
                 "Alice Nguyen"
         );
-        when(repository.save(any(UserAccount.class)))
+        when(repository.saveAndFlush(any(UserAccount.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         UserAccount user = service.create(request);
@@ -64,6 +65,27 @@ class UserAccountServiceTest {
                         "a-strong-password",
                         "Alice Nguyen"
                 ))
+        );
+    }
+
+    @Test
+    void translatesDatabaseIdentityConflict() {
+        when(repository.saveAndFlush(any(UserAccount.class)))
+                .thenThrow(new DataIntegrityViolationException("duplicate"));
+
+        ConflictException exception = assertThrows(
+                ConflictException.class,
+                () -> service.create(new CreateUserRequest(
+                        "alice",
+                        "alice@example.com",
+                        "a-strong-password",
+                        "Alice Nguyen"
+                ))
+        );
+
+        assertEquals(
+                "Username or email already exists",
+                exception.getMessage()
         );
     }
 

@@ -4,6 +4,9 @@ import { paymentApi } from "../../services/api";
 import { shortId } from "../../utils/format";
 import { Field, Modal } from "../ui/Modal";
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function TransferModal({ source, onClose, onCreated }) {
   const [form, setForm] = useState({
     destinationAccountId: "",
@@ -19,12 +22,19 @@ export function TransferModal({ source, onClose, onCreated }) {
       setError("Create or select a source account first.");
       return;
     }
+    const destinationAccountId = form.destinationAccountId.trim();
+    if (!UUID_PATTERN.test(destinationAccountId)) {
+      setError(
+        "Paste the full destination account UUID, not the shortened account label.",
+      );
+      return;
+    }
     setBusy(true);
     setError("");
     try {
       const response = await paymentApi.create({
         sourceAccountId: source.accountId,
-        destinationAccountId: form.destinationAccountId.trim(),
+        destinationAccountId,
         amount: form.amount,
         currency: source.currency,
         description: form.description.trim(),
@@ -51,15 +61,17 @@ export function TransferModal({ source, onClose, onCreated }) {
               : "No account selected"}
           </div>
         </Field>
-        <Field label="Destination account">
+        <Field label="Destination account" hint="Full UUID">
           <input
             required
+            pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
+            title="Paste the full destination account UUID"
             value={form.destinationAccountId}
             onChange={(event) => setForm({
               ...form,
               destinationAccountId: event.target.value,
             })}
-            placeholder="Destination account UUID"
+            placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
           />
         </Field>
         <div className="two-columns">

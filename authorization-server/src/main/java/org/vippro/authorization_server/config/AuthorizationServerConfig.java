@@ -32,6 +32,7 @@ import org.springframework.security.oauth2.server.authorization.token.OAuth2Toke
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -77,6 +78,8 @@ public class AuthorizationServerConfig {
                                 "/actuator/health",
                                 "/actuator/health/**",
                                 "/login",
+                                "/home",
+                                "/register",
                                 "/login.html",
                                 "/login.css",
                                 "/error",
@@ -86,6 +89,9 @@ public class AuthorizationServerConfig {
                 )
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .csrfTokenRequestHandler(
+                                new CsrfTokenRequestAttributeHandler()
+                        )
                 )
                 .formLogin(form -> form
                         .loginPage("/login")

@@ -3,58 +3,152 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
     <title>LedgerPay Secure Sign In</title>
     <link rel="stylesheet" href="/login.css" />
   </head>
   <body>
-    <div class="login-shell">
-      <div class="login-glow glow-one"></div>
-      <div class="login-glow glow-two"></div>
-      <div class="login-hero">
-        <div class="hero-badge">LedgerPay Authorization</div>
-        <h1>Welcome back to<br /><span>LedgerPay</span></h1>
-        <p>Securely sign in and continue managing money movement with confidence, audit-ready history, and bank-grade protection.</p>
-        <div class="hero-values">
-          <span>OAuth 2.0 security</span>
-          <span>PKCE-powered login</span>
-          <span>Modern financial experience</span>
+    <main class="auth-page">
+      <div class="page-glow page-glow-one"></div>
+      <div class="page-glow page-glow-two"></div>
+
+      <header class="site-header">
+        <a class="brand" href="/home" aria-label="LedgerPay home">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M3 10h18M5 10v8m4-8v8m6-8v8m4-8v8M3 18h18M12 3l9 5H3l9-5Z"></path>
+            </svg>
+          </span>
+          <span>Ledger<span class="brand-accent">Pay</span></span>
+        </a>
+        <div class="header-security">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="5" y="10" width="14" height="10" rx="2"></rect>
+            <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+          </svg>
+          Bank-grade security
         </div>
-      </div>
-      <div class="login-card">
+      </header>
+
+      <section class="hero">
+        <div class="hero-pill">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m12 3-1.5 4.5L6 9l4.5 1.5L12 15l1.5-4.5L18 9l-4.5-1.5L12 3Z"></path>
+            <path d="m19 15-.8 2.2L16 18l2.2.8L19 21l.8-2.2L22 18l-2.2-.8L19 15Z"></path>
+          </svg>
+          LedgerPay authorization
+        </div>
+        <h1>Money moves fast.<br /><span>Your access stays secure.</span></h1>
+        <p>
+          Sign in to manage accounts, send transfers, and follow every
+          ledger event from one clear workspace.
+        </p>
+        <div class="feature-row">
+          <div>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path>
+              <path d="m9 12 2 2 4-4"></path>
+            </svg>
+            OAuth 2.0 protected
+          </div>
+          <div>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="5" y="10" width="14" height="10" rx="2"></rect>
+              <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+            </svg>
+            PKCE-secured session
+          </div>
+          <div>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 19V9m5 10V5m5 14v-7m5 7V3"></path>
+            </svg>
+            Auditable ledger history
+          </div>
+        </div>
+
+        <div class="security-preview">
+          <div class="preview-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path>
+              <path d="m9 12 2 2 4-4"></path>
+            </svg>
+          </div>
+          <div>
+            <span>SECURE AUTHORIZATION</span>
+            <strong>Your credentials stay with LedgerPay</strong>
+          </div>
+          <span class="live-status">Protected</span>
+        </div>
+      </section>
+
+      <section class="auth-card" aria-labelledby="login-title">
         <div class="card-header">
-          <span>Secure Access</span>
-          <h2>Sign in to continue</h2>
-          <p>Enter your LedgerPay credentials to launch the authorization flow.</p>
+          <span>SECURE ACCESS</span>
+          <h2 id="login-title">Welcome back</h2>
+          <p>Enter your credentials to continue to your finance workspace.</p>
+        </div>
+
+        <div class="login-error" id="login-error" role="alert" hidden>
+          The username or password is incorrect.
         </div>
 
         <form method="post" action="/login" class="login-form">
           <input type="hidden" name="_csrf" id="csrf" value="" />
           <label>
-            Username
-            <input name="username" type="text" autocomplete="username" required />
+            <span>Username</span>
+            <input
+              name="username"
+              type="text"
+              autocomplete="username"
+              placeholder="Enter your username"
+              autofocus
+              required
+            />
           </label>
           <label>
-            Password
-            <input name="password" type="password" autocomplete="current-password" required />
+            <span>Password</span>
+            <input
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              placeholder="Enter your password"
+              required
+            />
           </label>
-          <button type="submit">Sign in</button>
+          <button type="submit">
+            Sign in securely
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 12h14m-6-6 6 6-6 6"></path>
+            </svg>
+          </button>
         </form>
 
+        <div class="auth-divider"><span>New to LedgerPay?</span></div>
+        <a class="register-link" href="/register">Create your free account</a>
+
         <div class="card-footnote">
-          <span>Credentials are encrypted and handled by the authorization server.</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="5" y="10" width="14" height="10" rx="2"></rect>
+            <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+          </svg>
+          Credentials are encrypted and never shared.
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
 
     <script>
       function getCookie(name) {
         const value = `; ${document.cookie}`;
         const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop().split(';').shift();
+        if (parts.length === 2) return parts.pop().split(";").shift();
       }
-      const csrfToken = getCookie('XSRF-TOKEN');
+
+      const csrfToken = getCookie("XSRF-TOKEN");
       if (csrfToken) {
-        document.getElementById('csrf').value = csrfToken;
+        document.getElementById("csrf").value = decodeURIComponent(csrfToken);
+      }
+      if (new URLSearchParams(window.location.search).has("error")) {
+        document.getElementById("login-error").hidden = false;
       }
     </script>
   </body>

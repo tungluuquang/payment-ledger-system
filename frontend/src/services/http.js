@@ -25,6 +25,26 @@ async function parseBody(response) {
   }
 }
 
+function getErrorMessage(body) {
+  if (typeof body === "string" && body.trim()) return body;
+  if (!body || typeof body !== "object") return "Request failed";
+  if (typeof body.message === "string" && body.message.trim()) {
+    return body.message;
+  }
+  if (typeof body.detail === "string" && body.detail.trim()) {
+    return body.detail;
+  }
+  if (typeof body.error === "string" && body.error.trim()) {
+    return body.error;
+  }
+  if (body.fieldErrors && typeof body.fieldErrors === "object") {
+    const messages = Object.values(body.fieldErrors)
+      .filter((message) => typeof message === "string" && message.trim());
+    if (messages.length) return messages.join(". ");
+  }
+  return "Request failed";
+}
+
 export async function request(path, options = {}, retry = true) {
   const token = getTokens()?.access_token;
   const response = await fetch(`${env.apiBaseUrl}${path}`, {
@@ -46,7 +66,7 @@ export async function request(path, options = {}, retry = true) {
   const body = await parseBody(response);
   if (!response.ok) {
     throw new ApiError(
-      body?.message || body?.detail || body || "Request failed",
+      getErrorMessage(body),
       response.status,
       body,
     );

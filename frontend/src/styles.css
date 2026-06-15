@@ -202,6 +202,7 @@ h1, h2, h3, .brand { font-family: "Manrope", sans-serif; }
 .login-card p { margin-bottom: 28px; color: rgba(255,255,255,.72); line-height: 1.8; }
 .login-action { width: 100%; }
 .login-card .text-button { width: 100%; margin-top: 14px; color: rgba(184,243,107,.95); }
+.login-card .login-back-link { margin-top: 2px; color: rgba(255,255,255,.62); font-size: 12px; }
 .login-card .auth-divider { margin: 20px 0 12px; color: rgba(255,255,255,.55); }
 .login-card .auth-footnote { color: rgba(255,255,255,.62); }
 .auth-kicker, .eyebrow, .page-kicker {

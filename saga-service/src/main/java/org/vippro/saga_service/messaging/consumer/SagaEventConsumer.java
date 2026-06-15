@@ -1,6 +1,7 @@
 package org.vippro.saga_service.messaging.consumer;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import org.vippro.saga_service.handler.SagaEventHandler;
@@ -32,7 +33,8 @@ public class SagaEventConsumer {
             },
             groupId = "payment-saga"
     )
-    public void consume(Object event) {
+    public void consume(ConsumerRecord<String, Object> record) {
+        Object event = record.value();
         SagaEventHandler<?> handler = handlers.get(event.getClass());
 
         if (handler == null) {

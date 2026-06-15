@@ -10,11 +10,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.context.ActiveProfiles;
 
+import jakarta.servlet.http.Cookie;
+
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -49,6 +53,75 @@ class AuthorizationServerApplicationTests {
 	}
 
 	@Test
+	void redirectsRegistrationToSpa() throws Exception {
+		mockMvc.perform(get("/register"))
+				.andExpect(status().is3xxRedirection())
+				.andExpect(redirectedUrl(
+						"http://localhost:5173/?register=true"
+				));
+	}
+
+	@Test
+	void redirectsHomeToSpa() throws Exception {
+		mockMvc.perform(get("/home"))
+				.andExpect(status().is3xxRedirection())
+				.andExpect(redirectedUrl("http://localhost:5173/"));
+	}
+
+	@Test
+	void loginPageIssuesCsrfCookie() throws Exception {
+		mockMvc.perform(get("/login"))
+				.andExpect(status().isOk())
+				.andExpect(cookie().exists("XSRF-TOKEN"));
+	}
+
+	@Test
+	void acceptsCsrfCookieTokenWhenSigningIn() throws Exception {
+		createUserTables();
+		jdbcTemplate.update(
+				"DELETE FROM user_roles WHERE user_id IN "
+						+ "(SELECT user_id FROM users WHERE username = ?)",
+				"login-user"
+		);
+		jdbcTemplate.update(
+				"DELETE FROM users WHERE username = ?",
+				"login-user"
+		);
+
+		java.util.UUID userId = java.util.UUID.randomUUID();
+		jdbcTemplate.update(
+				"""
+				INSERT INTO users (
+				    user_id, username, password_hash, status
+				) VALUES (?, ?, ?, ?)
+				""",
+				userId,
+				"login-user",
+				passwordEncoder.encode("strong-password-123"),
+				"ACTIVE"
+		);
+		jdbcTemplate.update(
+				"INSERT INTO user_roles (user_id, role) VALUES (?, ?)",
+				userId,
+				"USER"
+		);
+
+		Cookie csrfCookie = mockMvc.perform(get("/login"))
+				.andReturn()
+				.getResponse()
+				.getCookie("XSRF-TOKEN");
+
+		assertThat(csrfCookie).isNotNull();
+		mockMvc.perform(post("/login")
+						.cookie(csrfCookie)
+						.param("_csrf", csrfCookie.getValue())
+						.param("username", "login-user")
+						.param("password", "strong-password-123"))
+				.andExpect(status().is3xxRedirection())
+				.andExpect(redirectedUrl("/"));
+	}
+
+	@Test
 	void issuesAccessTokenForClientCredentials() throws Exception {
 		mockMvc.perform(post("/oauth2/token")
 						.with(httpBasic("payment-ledger-client", "change-me"))
@@ -62,22 +135,18 @@ class AuthorizationServerApplicationTests {
 
 	@Test
 	void loadsUserAndRolesFromUserServiceTables() {
-		jdbcTemplate.execute("""
-				CREATE TABLE IF NOT EXISTS users (
-				    user_id UUID PRIMARY KEY,
-				    username VARCHAR(50) UNIQUE NOT NULL,
-				    password_hash VARCHAR(100) NOT NULL,
-				    status VARCHAR(20) NOT NULL
-				)
-				""");
-		jdbcTemplate.execute("""
-				CREATE TABLE IF NOT EXISTS user_roles (
-				    user_id UUID NOT NULL,
-				    role VARCHAR(20) NOT NULL
-				)
-				""");
+		createUserTables();
 
 		java.util.UUID userId = java.util.UUID.randomUUID();
+		jdbcTemplate.update(
+				"DELETE FROM user_roles WHERE user_id IN "
+						+ "(SELECT user_id FROM users WHERE username = ?)",
+				"admin"
+		);
+		jdbcTemplate.update(
+				"DELETE FROM users WHERE username = ?",
+				"admin"
+		);
 		jdbcTemplate.update(
 				"""
 				INSERT INTO users (
@@ -105,5 +174,22 @@ class AuthorizationServerApplicationTests {
 		assertThat(user.getAuthorities())
 				.extracting("authority")
 				.containsExactly("ROLE_ADMIN");
+	}
+
+	private void createUserTables() {
+		jdbcTemplate.execute("""
+				CREATE TABLE IF NOT EXISTS users (
+				    user_id UUID PRIMARY KEY,
+				    username VARCHAR(50) UNIQUE NOT NULL,
+				    password_hash VARCHAR(100) NOT NULL,
+				    status VARCHAR(20) NOT NULL
+				)
+				""");
+		jdbcTemplate.execute("""
+				CREATE TABLE IF NOT EXISTS user_roles (
+				    user_id UUID NOT NULL,
+				    role VARCHAR(20) NOT NULL
+				)
+				""");
 	}
 }

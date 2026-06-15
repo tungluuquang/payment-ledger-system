@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,19 +42,25 @@ public class UserAccountService {
             throw new ConflictException("Email already exists");
         }
 
-        return userRepository.save(
-                UserAccount.builder()
-                        .userId(UUID.randomUUID())
-                        .username(username)
-                        .email(email)
-                        .passwordHash(
-                                passwordEncoder.encode(request.password())
-                        )
-                        .fullName(request.fullName().trim())
-                        .status(UserStatus.ACTIVE)
-                        .roles(Set.of(UserRole.USER))
-                        .build()
-        );
+        try {
+            return userRepository.saveAndFlush(
+                    UserAccount.builder()
+                            .userId(UUID.randomUUID())
+                            .username(username)
+                            .email(email)
+                            .passwordHash(
+                                    passwordEncoder.encode(request.password())
+                            )
+                            .fullName(request.fullName().trim())
+                            .status(UserStatus.ACTIVE)
+                            .roles(Set.of(UserRole.USER))
+                            .build()
+            );
+        } catch (DataIntegrityViolationException exception) {
+            throw new ConflictException(
+                    "Username or email already exists"
+            );
+        }
     }
 
     @Transactional(readOnly = true)
