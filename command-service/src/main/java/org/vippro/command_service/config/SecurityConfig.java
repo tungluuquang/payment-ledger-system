@@ -17,7 +17,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(
                                 "/actuator/health",
-                                "/actuator/health/**"
+                                "/actuator/health/**",
+                                "/actuator/prometheus"
                         ).permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/payments")
                         .hasAuthority("SCOPE_payment.write")

@@ -6,6 +6,7 @@ import {
   Send,
   Settings,
   ShieldCheck,
+  ChartNoAxesCombined,
   WalletCards,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
@@ -46,6 +47,16 @@ export function Sidebar({ onNewTransfer }) {
             <Icon size={18} /> {label}
           </NavLink>
         ))}
+        {user.roles?.includes("ADMIN") && (
+          <NavLink
+            to="/app/operations"
+            className={({ isActive }) =>
+              `nav-item ${isActive ? "active" : ""}`
+            }
+          >
+            <ChartNoAxesCombined size={18} /> Operations
+          </NavLink>
+        )}
       </nav>
       <div className="sidebar-help">
         <span><ShieldCheck size={17} /></span>

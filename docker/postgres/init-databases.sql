@@ -5,3 +5,5 @@ CREATE DATABASE account_db;
 CREATE DATABASE ledger_db;
 CREATE DATABASE projection_db;
 CREATE DATABASE user_db;
+CREATE DATABASE analytics_db;
+CREATE DATABASE audit_db;

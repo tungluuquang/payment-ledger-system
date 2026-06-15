@@ -8,6 +8,11 @@ x-service-environment: &service-environment
   POSTGRES_PORT: "5432"
   POSTGRES_USER: postgres
   POSTGRES_PASSWORD: postgres
+  MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,prometheus
+  MANAGEMENT_TRACING_SAMPLING_PROBABILITY: "1.0"
+  MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+  SPRING_KAFKA_LISTENER_OBSERVATION_ENABLED: "true"
+  SPRING_KAFKA_TEMPLATE_OBSERVATION_ENABLED: "true"
 
 x-service-build: &service-build
   context: .
@@ -52,6 +57,38 @@ services:
       interval: 10s
       timeout: 10s
       retries: 20
+
+  zipkin:
+    image: openzipkin/zipkin:3.5
+    ports:
+      - "9411:9411"
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+      - zipkin
+    ports:
+      - "3000:3000"
 
   service-discovery:
     build:
@@ -195,6 +232,54 @@ services:
       kafka:
         condition: service_healthy
 
+  reconciliation-service:
+    build:
+      <<: *service-build
+      args:
+        MODULE: reconciliation-service
+    environment:
+      <<: *service-environment
+      PORT: "8088"
+      ACCOUNT_POSTGRES_DB: account_db
+      LEDGER_POSTGRES_DB: ledger_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      account-service:
+        condition: service_started
+      ledger-service:
+        condition: service_started
+
+  analytics-service:
+    build:
+      <<: *service-build
+      args:
+        MODULE: analytics-service
+    environment:
+      <<: *service-environment
+      PORT: "8089"
+      POSTGRES_DB: analytics_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  audit-service:
+    build:
+      <<: *service-build
+      args:
+        MODULE: audit-service
+    environment:
+      <<: *service-environment
+      PORT: "8090"
+      POSTGRES_DB: audit_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
   projection-service:
     build:
       <<: *service-build
@@ -244,3 +329,5 @@ services:
 
 volumes:
   postgres-data:
+  prometheus-data:
+  grafana-data:

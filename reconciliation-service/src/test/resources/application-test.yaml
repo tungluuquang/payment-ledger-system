@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    account:
+      url: jdbc:h2:mem:reconciliation_account;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+      username: sa
+      password:
+      driver-class-name: org.h2.Driver
+    ledger:
+      url: jdbc:h2:mem:reconciliation_ledger;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+      username: sa
+      password:
+      driver-class-name: org.h2.Driver
+
+eureka:
+  client:
+    enabled: false
+
+server:
+  port: 0

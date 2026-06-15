@@ -50,6 +50,24 @@ spring:
             - Path=/api/accounts,/api/accounts/**
           filters:
             - StripPrefix=1
+        - id: reconciliation-api
+          uri: lb://reconciliation-service
+          predicates:
+            - Path=/api/reconciliations,/api/reconciliations/**
+          filters:
+            - StripPrefix=1
+        - id: analytics-api
+          uri: lb://analytics-service
+          predicates:
+            - Path=/api/analytics,/api/analytics/**
+          filters:
+            - StripPrefix=1
+        - id: audit-api
+          uri: lb://audit-service
+          predicates:
+            - Path=/api/audit,/api/audit/**
+          filters:
+            - StripPrefix=1
         - id: user-api
           uri: lb://user-service
           predicates:

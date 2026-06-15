@@ -30,7 +30,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(
                                 "/actuator/health",
-                                "/actuator/health/**"
+                                "/actuator/health/**",
+                                "/actuator/prometheus"
                         ).permitAll()
                         .requestMatchers(
                                 org.springframework.http.HttpMethod.POST,

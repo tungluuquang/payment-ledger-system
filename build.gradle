@@ -2,6 +2,33 @@ plugins {
     id 'base'
 }
 
+def observableServices = [
+        'service-discovery',
+        'authorization-server',
+        'user-service',
+        'api-gateway',
+        'command-service',
+        'saga-service',
+        'fraud-check-service',
+        'account-service',
+        'ledger-service',
+        'projection-service',
+        'reconciliation-service',
+        'analytics-service',
+        'audit-service'
+]
+
+configure(observableServices.collect { project(":${it}") }) {
+    pluginManager.withPlugin('org.springframework.boot') {
+        dependencies {
+            implementation 'org.springframework.boot:spring-boot-starter-actuator'
+            implementation 'io.micrometer:micrometer-tracing-bridge-brave'
+            implementation 'io.zipkin.reporter2:zipkin-reporter-brave'
+            runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
+        }
+    }
+}
+
 tasks.register('testAll') {
     group = 'verification'
     description = 'Runs tests for every service in the platform.'

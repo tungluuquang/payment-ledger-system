@@ -27,7 +27,8 @@ public class SecurityConfig {
                 .authorizeExchange(authorize -> authorize
                         .pathMatchers(
                                 "/actuator/health",
-                                "/actuator/health/**"
+                                "/actuator/health/**",
+                                "/actuator/prometheus"
                         ).permitAll()
                         .pathMatchers(HttpMethod.POST, "/api/users")
                         .permitAll()
@@ -59,6 +60,12 @@ public class SecurityConfig {
                         .hasAuthority("SCOPE_account.read")
                         .pathMatchers(HttpMethod.POST, "/api/accounts")
                         .hasAuthority("SCOPE_account.write")
+                        .pathMatchers("/api/reconciliations/**")
+                        .hasRole("ADMIN")
+                        .pathMatchers("/api/analytics/**")
+                        .hasRole("ADMIN")
+                        .pathMatchers("/api/audit/**")
+                        .hasRole("ADMIN")
                         .anyExchange().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 ->

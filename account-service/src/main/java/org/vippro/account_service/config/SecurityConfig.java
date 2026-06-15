@@ -21,7 +21,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(
                                 "/actuator/health",
-                                "/actuator/health/**"
+                                "/actuator/health/**",
+                                "/actuator/prometheus"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/accounts/**")
                         .hasAuthority("SCOPE_account.read")

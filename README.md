@@ -15,6 +15,11 @@ The main goal is to explore how financial systems handle consistency, transactio
 * Saga service for distributed transaction orchestration
 * Fraud check service
 * Projection service
+* Event-driven analytics and operational dashboard
+* Payment-ledger reconciliation
+* Distributed tracing with Zipkin
+* Prometheus metrics and provisioned Grafana dashboards
+* Durable, searchable audit event logging
 * API Gateway
 * Authorization server
 * Frontend application
@@ -46,9 +51,6 @@ After the containers are started, the application and supporting services will b
 
 ## Future Plan
 
-* Implement payment-ledger reconciliation for consistency verification.
-* Develop operational dashboards and event-driven analytics.
-* Add distributed tracing, monitoring, and audit logging.
 * Add real-time fraud detection using big data technologies and machine learning.
 * Deploy services on Kubernetes.
 * Deploy and scale the platform on Google Cloud Platform (GKE).
@@ -57,3 +59,12 @@ After the containers are started, the application and supporting services will b
 ## Purpose
 
 This project is mainly for learning and experimentation with financial system design, ledger consistency, saga patterns, event-driven architecture, and future big data extensions.
+
+## Observability
+
+After starting the platform with Docker Compose:
+
+* Grafana: `http://localhost:3000` (`admin` / `admin`)
+* Prometheus: `http://localhost:9090`
+* Zipkin: `http://localhost:9411`
+* Audit API: `GET /api/audit/events` (admin access required)

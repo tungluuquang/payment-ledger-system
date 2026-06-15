@@ -11,6 +11,7 @@ import { TransfersPage } from "../pages/TransfersPage";
 import { TransferDetailPage } from "../pages/TransferDetailPage";
 import { ProfilePage } from "../pages/ProfilePage";
 import { NotFoundPage } from "../pages/NotFoundPage";
+import { OperationsPage } from "../pages/OperationsPage";
 
 function ProtectedApp() {
   const { isAuthenticated } = useAuth();
@@ -20,6 +21,13 @@ function ProtectedApp() {
       <AppLayout />
     </AppDataProvider>
   );
+}
+
+function AdminRoute({ children }) {
+  const { user } = useAuth();
+  return user?.roles?.includes("ADMIN")
+    ? children
+    : <Navigate to="/app" replace />;
 }
 
 export function AppRouter() {
@@ -48,6 +56,10 @@ export function AppRouter() {
           element={<TransferDetailPage />}
         />
         <Route path="profile" element={<ProfilePage />} />
+        <Route
+          path="operations"
+          element={<AdminRoute><OperationsPage /></AdminRoute>}
+        />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

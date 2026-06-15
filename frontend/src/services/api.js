@@ -39,5 +39,10 @@ export const paymentApi = {
         idempotencyKey: crypto.randomUUID(),
       }),
       headers: { "X-Command-Id": crypto.randomUUID() },
-    }),
+  }),
+};
+
+export const analyticsApi = {
+  overview: (hours = 24) =>
+    request(`/analytics/overview?hours=${hours}`),
 };

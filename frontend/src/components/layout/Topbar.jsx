@@ -7,6 +7,7 @@ const pageInfo = {
   "/app/accounts": ["Manage your money", "Accounts"],
   "/app/transfers": ["Payment activity", "Transfers"],
   "/app/profile": ["Personal settings", "Profile"],
+  "/app/operations": ["Platform operations", "Event analytics"],
 };
 
 export function Topbar({ onNewTransfer, onNewAccount }) {
@@ -16,6 +17,7 @@ export function Topbar({ onNewTransfer, onNewAccount }) {
   const [kicker, title] = location.pathname.startsWith("/app/transfers/")
     ? ["Payment activity", "Transfer detail"]
     : pageInfo[location.pathname] || pageInfo["/app"];
+  const operations = location.pathname === "/app/operations";
 
   return (
     <header className="topbar">
@@ -24,7 +26,7 @@ export function Topbar({ onNewTransfer, onNewAccount }) {
         <h1>{title}</h1>
       </div>
       <div className="topbar-actions">
-        {accounts.length > 0 && (
+        {!operations && accounts.length > 0 && (
           <label className="account-select">
             <LandmarkIcon />
             <select
@@ -40,16 +42,16 @@ export function Topbar({ onNewTransfer, onNewAccount }) {
             <ChevronDown size={14} />
           </label>
         )}
-        <button className="notification-button"><Bell size={18} /><i /></button>
-        <button className="secondary-button icon-only" onClick={refresh}>
+        {!operations && <button className="notification-button"><Bell size={18} /><i /></button>}
+        {!operations && <button className="secondary-button icon-only" onClick={refresh}>
           <RefreshCw size={16} className={loading ? "spin" : ""} />
-        </button>
-        <button className="secondary-button" onClick={onNewAccount}>
+        </button>}
+        {!operations && <button className="secondary-button" onClick={onNewAccount}>
           <Plus size={15} /> Account
-        </button>
-        <button className="primary-button compact" onClick={onNewTransfer}>
+        </button>}
+        {!operations && <button className="primary-button compact" onClick={onNewTransfer}>
           <Send size={15} /> New transfer
-        </button>
+        </button>}
       </div>
     </header>
   );

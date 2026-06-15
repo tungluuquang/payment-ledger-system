@@ -77,6 +77,7 @@ public class AuthorizationServerConfig {
                         .requestMatchers(
                                 "/actuator/health",
                                 "/actuator/health/**",
+                                "/actuator/prometheus",
                                 "/login",
                                 "/home",
                                 "/register",

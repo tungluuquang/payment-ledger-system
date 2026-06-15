@@ -11,5 +11,8 @@ include(
         'fraud-check-service',
         'account-service',
         'ledger-service',
-        'projection-service'
+        'projection-service',
+        'reconciliation-service',
+        'analytics-service',
+        'audit-service'
 )

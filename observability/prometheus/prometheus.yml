@@ -1,0 +1,22 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: payment-ledger-services
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - service-discovery:8761
+          - authorization-server:9000
+          - user-service:8086
+          - api-gateway:8080
+          - command-service:8081
+          - saga-service:8087
+          - fraud-check-service:8084
+          - account-service:8082
+          - ledger-service:8083
+          - projection-service:8085
+          - reconciliation-service:8088
+          - analytics-service:8089
+          - audit-service:8090
