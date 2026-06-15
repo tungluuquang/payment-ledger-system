@@ -71,7 +71,9 @@ jobs:
 
       - name: Verify rollouts
         run: |
-          kubectl -n payment-ledger rollout status deployment --all --timeout=15m
+          for deployment in $(kubectl -n payment-ledger get deployment -o name); do
+            kubectl -n payment-ledger rollout status "${deployment}" --timeout=15m
+          done
           kubectl -n payment-ledger rollout status statefulset/kafka --timeout=15m
 
       - name: Smoke test

@@ -223,6 +223,9 @@ gcloud artifacts repositories create "${GAR_REPOSITORY}" \
   --repository-format=docker \
   --location="${GCP_REGION}" \
   --description="Payment Ledger production images"
+
+gcloud auth configure-docker \
+  "${GCP_REGION}-docker.pkg.dev" --quiet
 ```
 
 Images are immutable and tagged with the Git commit SHA. The registry path is
@@ -358,26 +361,55 @@ gcloud compute addresses describe "${GKE_STATIC_IP_NAME}" \
 Set an `A` record for the production hostname to that address. The overlay uses
 a Google-managed certificate and redirects HTTP to HTTPS.
 
-### Manual Deployment
+### Manual Build and Deployment
 
-Set all rendering variables:
+Run the test suite and frontend build before publishing images:
+
+```bash
+./gradlew testAll --no-daemon
+(cd frontend && npm ci && npm run build)
+```
+
+Set the registry, immutable image tag, and rendering variables:
 
 ```bash
 export GAR_LOCATION="${GCP_REGION}"
-export IMAGE_TAG='<git-sha>'
-export GKE_HOSTNAME=payments.example.com
 export GAR_REPOSITORY=payment-ledger
+export IMAGE_TAG="$(git rev-parse HEAD)"
+export GKE_HOSTNAME=payments.example.com
 export GKE_STATIC_IP_NAME=payment-ledger-prod-ip
 export GCP_RUNTIME_SERVICE_ACCOUNT
 export CLOUD_SQL_INSTANCE_CONNECTION_NAME
 ```
 
-Render, inspect, and apply:
+For a reproducible SHA-tagged release, commit the source changes before setting
+`IMAGE_TAG`.
+
+Build and push all 13 Spring Boot images plus the frontend image:
 
 ```bash
+./scripts/gke-build-images.sh
+```
+
+The image tag must match `IMAGE_TAG` used when rendering the manifests. Confirm
+that all 14 images exist before deploying:
+
+```bash
+gcloud artifacts docker images list \
+  "${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}" \
+  --include-tags \
+  --filter="tags:${IMAGE_TAG}"
+```
+
+Synchronize secrets, render, inspect, and apply:
+
+```bash
+./scripts/sync-gke-secrets.sh
 ./scripts/render-gke-manifests.sh > /tmp/payment-ledger-gke.yaml
 kubectl apply --server-side -f /tmp/payment-ledger-gke.yaml
-kubectl -n payment-ledger rollout status deployment --all --timeout=15m
+for deployment in $(kubectl -n payment-ledger get deployment -o name); do
+  kubectl -n payment-ledger rollout status "${deployment}" --timeout=15m
+done
 GKE_BASE_URL="https://${GKE_HOSTNAME}" ./scripts/gke-smoke-test.sh
 ```
 
@@ -464,7 +496,7 @@ service-account JSON keys.
 
 ### Observability
 
-The default GKE deployment runs two OpenTelemetry Collector replicas and exports
+The default GKE deployment runs one OpenTelemetry Collector replica and exports
 traces to Google Cloud Trace. Spring services continue sending Zipkin-compatible
 traces to the collector, allowing an incremental migration to OTLP.
 

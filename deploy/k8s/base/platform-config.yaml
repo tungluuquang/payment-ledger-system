@@ -9,6 +9,7 @@ data:
   EUREKA_SERVER_URL: http://service-discovery:8761/eureka/
   EUREKA_CLIENT_ENABLED: "true"
   EUREKA_PREFER_IP_ADDRESS: "true"
+  EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
   AUTH_ISSUER: https://replace-me.example.com
   AUTH_JWK_SET_URI: http://authorization-server:9000/oauth2/jwks
   MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,prometheus

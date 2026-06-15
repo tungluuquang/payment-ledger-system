@@ -29,8 +29,10 @@ kubectl -n "${NAMESPACE}" wait \
   --timeout="${TIMEOUT}"
 
 echo "Checking deployments and stateful workloads..."
-kubectl -n "${NAMESPACE}" rollout status deployment --all \
-  --timeout="${TIMEOUT}"
+for deployment in $(kubectl -n "${NAMESPACE}" get deployment -o name); do
+  kubectl -n "${NAMESPACE}" rollout status "${deployment}" \
+    --timeout="${TIMEOUT}"
+done
 kubectl -n "${NAMESPACE}" rollout status statefulset/postgres \
   --timeout="${TIMEOUT}"
 kubectl -n "${NAMESPACE}" rollout status statefulset/kafka \

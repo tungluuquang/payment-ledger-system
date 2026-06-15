@@ -137,10 +137,30 @@ patches:
           capabilities:
             drop:
               - ALL
+      - op: add
+        path: /spec/volumeClaimTemplates/0/spec/storageClassName
+        value: standard
   - target:
       kind: Deployment
       labelSelector: platform.payment-ledger.io/cloud-sql=true
     patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: EUREKA_INSTANCE_IP_ADDRESS
+          value: $(POD_IP)
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: EUREKA_INSTANCE_PREFER_IP_ADDRESS
+          value: "true"
       - op: add
         path: /spec/template/spec/containers/-
         value:
@@ -164,11 +184,6 @@ patches:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 65532
-          startupProbe:
-            tcpSocket:
-              port: 5432
-            periodSeconds: 2
-            failureThreshold: 30
           resources:
             requests:
               cpu: 100m
@@ -176,6 +191,15 @@ patches:
             limits:
               cpu: 500m
               memory: 256Mi
+  - target:
+      kind: HorizontalPodAutoscaler
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 2
   - target:
       kind: Service
       name: frontend

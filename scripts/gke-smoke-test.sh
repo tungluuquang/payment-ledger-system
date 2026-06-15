@@ -14,8 +14,10 @@ for command in kubectl curl; do
 done
 
 echo "Checking Kubernetes rollouts..."
-kubectl -n "${NAMESPACE}" rollout status deployment --all \
-  --timeout="${TIMEOUT}"
+for deployment in $(kubectl -n "${NAMESPACE}" get deployment -o name); do
+  kubectl -n "${NAMESPACE}" rollout status "${deployment}" \
+    --timeout="${TIMEOUT}"
+done
 kubectl -n "${NAMESPACE}" rollout status statefulset/kafka \
   --timeout="${TIMEOUT}"
 

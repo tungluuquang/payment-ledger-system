@@ -55,15 +55,33 @@ spec:
   egress:
     - to:
         - podSelector: {}
+    # DNS can be served by kube-dns, NodeLocal DNSCache, or Cloud DNS.
     - to:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: kube-system
+        - ipBlock:
+            cidr: 0.0.0.0/0
       ports:
         - protocol: UDP
           port: 53
         - protocol: TCP
           port: 53
+    # Calico-based GKE Workload Identity metadata server.
+    - to:
+        - ipBlock:
+            cidr: 169.254.169.252/32
+      ports:
+        - protocol: TCP
+          port: 987
+        - protocol: TCP
+          port: 988
+    # GKE Dataplane V2 metadata server.
+    - to:
+        - ipBlock:
+            cidr: 169.254.169.254/32
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 8080
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0

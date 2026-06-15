@@ -94,6 +94,7 @@ metadata:
   name: kafka
 spec:
   clusterIP: None
+  publishNotReadyAddresses: true
   selector:
     app.kubernetes.io/name: kafka
   ports:
@@ -155,7 +156,7 @@ spec:
             - name: KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS
               value: "0"
             - name: KAFKA_LOG_DIRS
-              value: /var/lib/kafka/data
+              value: /var/lib/kafka/data/kafka
           readinessProbe:
             exec:
               command:
