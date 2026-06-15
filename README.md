@@ -47,6 +47,8 @@ After the containers are started, the application and supporting services will b
 ## Future Plan
 
 * Implement payment-ledger reconciliation for consistency verification.
+* Develop operational dashboards and event-driven analytics.
+* Add distributed tracing, monitoring, and audit logging.
 * Add real-time fraud detection using big data technologies and machine learning.
 * Deploy services on Kubernetes.
 * Deploy and scale the platform on Google Cloud Platform (GKE).
