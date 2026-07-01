@@ -42,10 +42,10 @@ kubectl -n "${NAMESPACE}" run "${smoke_pod}" \
 
 echo "Waiting for the Google Cloud Load Balancer..."
 for _ in $(seq 1 60); do
-  if curl --silent --show-error --fail \
-    "${BASE_URL}/actuator/health" |
-    grep -q '"status":"UP"'; then
-    break
+  if curl --silent --show-error --fail "${BASE_URL}/actuator/health" >/tmp/smoke-health.json 2>&1; then
+    if grep -q '"status":"UP"' /tmp/smoke-health.json; then
+      break
+    fi
   fi
   sleep 10
 done
