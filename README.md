@@ -415,6 +415,37 @@ GKE_BASE_URL="https://${GKE_HOSTNAME}" ./scripts/gke-smoke-test.sh
 
 To run the payment flow, set `GKE_SMOKE_ACCESS_TOKEN` to a valid user token.
 
+### Destroy to Stop Charges
+
+Preview the resources that will be removed:
+
+```bash
+export GCP_PROJECT_ID=my-project
+export GKE_LOCATION=us-central1
+export GAR_LOCATION=us-central1
+./scripts/gke-destroy-all.sh
+```
+
+Permanently remove GKE, Cloud SQL, the load balancer/static IP, Artifact
+Registry images, and orphaned PVC disks:
+
+```bash
+./scripts/gke-destroy-all.sh --execute
+```
+
+The script requires typing the project ID before deletion. It keeps Secret
+Manager values and the runtime service account by default so the platform can
+be recreated more quickly. To remove those too:
+
+```bash
+DELETE_SECRETS=true \
+DELETE_SERVICE_ACCOUNT=true \
+  ./scripts/gke-destroy-all.sh --execute
+```
+
+This is destructive: Cloud SQL databases, Kafka data, and container images
+cannot be recovered unless they were backed up elsewhere.
+
 ### GitHub Actions
 
 `build.yml` runs backend tests and the frontend build, validates manifests, then

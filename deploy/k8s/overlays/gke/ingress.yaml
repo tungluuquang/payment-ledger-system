@@ -44,7 +44,7 @@ spec:
 apiVersion: networking.gke.io/v1
 kind: ManagedCertificate
 metadata:
-  name: payment-ledger-certificate
+  name: payment-ledger-certificate-v2
 spec:
   domains:
     - GKE_HOSTNAME
@@ -56,7 +56,7 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: gce
     kubernetes.io/ingress.global-static-ip-name: GKE_STATIC_IP_NAME
-    networking.gke.io/managed-certificates: payment-ledger-certificate
+    networking.gke.io/managed-certificates: payment-ledger-certificate-v2
     networking.gke.io/v1beta1.FrontendConfig: payment-ledger-frontend
 spec:
   rules:

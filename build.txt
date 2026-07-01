@@ -1,0 +1,162 @@
+## Ubuntu
+
+gcloud auth login
+gcloud auth application-default login
+
+sudo apt-get install google-cloud-cli-gke-gcloud-auth-plugin kubectl
+
+export GCP_PROJECT_ID="project-324cbdbd-4eac-4c1f-a21"
+
+export GCP_REGION="asia-southeast1"
+export GKE_CLUSTER="payment-ledger-prod"
+export GAR_REPOSITORY="payment-ledger"
+export CLOUD_SQL_INSTANCE="payment-ledger-prod"
+export GKE_HOSTNAME="payment-ledger.duckdns.org"
+export GKE_STATIC_IP_NAME="payment-ledger-prod-ip"
+
+gcloud services enable \
+  artifactregistry.googleapis.com \
+  container.googleapis.com \
+  iamcredentials.googleapis.com \
+  secretmanager.googleapis.com \
+  sqladmin.googleapis.com \
+  sts.googleapis.com \
+  cloudtrace.googleapis.com
+  
+gcloud artifacts repositories create "$GAR_REPOSITORY" \
+  --repository-format=docker \
+  --location="$GCP_REGION"
+
+gcloud auth configure-docker \
+  "${GCP_REGION}-docker.pkg.dev" --quiet
+  
+gcloud container clusters create "$GKE_CLUSTER" \
+  --region="$GCP_REGION" \
+  --release-channel=regular \
+  --machine-type=e2-standard-4 \
+  --num-nodes=1 \
+  --enable-ip-alias \
+  --enable-network-policy \
+  --workload-pool="${GCP_PROJECT_ID}.svc.id.goog"
+
+gcloud container clusters get-credentials "$GKE_CLUSTER" \
+  --region="$GCP_REGION"
+  
+gcloud sql instances create payment-ledger-prod \
+  --database-version=POSTGRES_17 \
+  --region=asia-southeast1 \
+  --edition=ENTERPRISE \
+  --availability-type=ZONAL \
+  --tier=db-custom-1-3840 \
+  --storage-size=30 \
+  --storage-type=SSD \
+  --storage-auto-increase \
+  --backup-start-time=02:00
+  
+for db in command_db saga_db fraud_db account_db ledger_db \
+  projection_db user_db analytics_db audit_db; do
+  gcloud sql databases create "$db" \
+    --instance="$CLOUD_SQL_INSTANCE"
+done
+
+export DB_USER="payment_ledger"
+export DB_PASSWORD="$(openssl rand -base64 32)"
+
+# Create or update database user
+if gcloud sql users list --instance="$CLOUD_SQL_INSTANCE" --format="value(name)" --project="$GCP_PROJECT_ID" 2>/dev/null | grep -q "^${DB_USER}$"; then
+  gcloud sql users set-password "$DB_USER" \
+    --instance="$CLOUD_SQL_INSTANCE" \
+    --password="$DB_PASSWORD" \
+    --project="$GCP_PROJECT_ID"
+else
+  gcloud sql users create "$DB_USER" \
+    --instance="$CLOUD_SQL_INSTANCE" \
+    --password="$DB_PASSWORD" \
+    --project="$GCP_PROJECT_ID"
+fi
+
+export CLOUD_SQL_INSTANCE_CONNECTION_NAME="$(
+  gcloud sql instances describe "$CLOUD_SQL_INSTANCE" \
+    --format='value(connectionName)'
+)"
+
+gcloud iam service-accounts create payment-ledger-runtime
+
+export GCP_RUNTIME_SERVICE_ACCOUNT="payment-ledger-runtime@${GCP_PROJECT_ID}.iam.gserviceaccount.com"
+
+for role in roles/cloudsql.client roles/cloudtrace.agent; do
+  gcloud projects add-iam-policy-binding "$GCP_PROJECT_ID" \
+    --member="serviceAccount:${GCP_RUNTIME_SERVICE_ACCOUNT}" \
+    --role="$role"
+done
+
+kubectl apply -f deploy/k8s/base/namespace.yaml
+
+for ksa in payment-ledger-runtime otel-collector; do
+  gcloud iam service-accounts add-iam-policy-binding \
+    "$GCP_RUNTIME_SERVICE_ACCOUNT" \
+    --role=roles/iam.workloadIdentityUser \
+    --member="serviceAccount:${GCP_PROJECT_ID}.svc.id.goog[payment-ledger/${ksa}]"
+done
+
+# Helper function to create or update secrets in Secret Manager
+create_or_update_secret() {
+  local name="$1"
+  local val="$2"
+  gcloud secrets describe "$name" --project="$GCP_PROJECT_ID" >/dev/null 2>&1 || \
+    gcloud secrets create "$name" --replication-policy="automatic" --project="$GCP_PROJECT_ID"
+  printf '%s' "$val" | gcloud secrets versions add "$name" --data-file=- --project="$GCP_PROJECT_ID"
+}
+
+create_or_update_secret "payment-ledger-postgres-user" "$DB_USER"
+create_or_update_secret "payment-ledger-postgres-password" "$DB_PASSWORD"
+create_or_update_secret "payment-ledger-auth-client-secret" "$(openssl rand -base64 32)"
+create_or_update_secret "payment-ledger-bootstrap-admin-password" "$(openssl rand -base64 24)"
+  
+./scripts/sync-gke-secrets.sh
+
+export IMAGE_TAG="$(git rev-parse HEAD)"
+export REGISTRY="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}"
+
+services=(
+  service-discovery authorization-server user-service api-gateway
+  command-service saga-service fraud-check-service account-service
+  ledger-service projection-service reconciliation-service
+  analytics-service audit-service
+)
+
+for service in "${services[@]}"; do
+  docker build \
+    -f Dockerfile.service \
+    --build-arg "MODULE=${service}" \
+    -t "${REGISTRY}/${service}:${IMAGE_TAG}" .
+  docker push "${REGISTRY}/${service}:${IMAGE_TAG}"
+done
+
+docker build \
+  -f frontend/Dockerfile \
+  -t "${REGISTRY}/frontend:${IMAGE_TAG}" frontend
+
+docker push "${REGISTRY}/frontend:${IMAGE_TAG}"
+
+# Create static IP if not exists, then describe it
+gcloud compute addresses describe "$GKE_STATIC_IP_NAME" --global --project="$GCP_PROJECT_ID" >/dev/null 2>&1 || \
+  gcloud compute addresses create "$GKE_STATIC_IP_NAME" --global --project="$GCP_PROJECT_ID"
+
+gcloud compute addresses describe "$GKE_STATIC_IP_NAME" \
+  --global \
+  --project="$GCP_PROJECT_ID" \
+  --format='value(address)'
+
+# Deploy to GKE
+./scripts/sync-gke-secrets.sh
+
+# Render and apply Kubernetes manifests
+export GAR_LOCATION="$GCP_REGION"
+export CLOUD_SQL_INSTANCE_CONNECTION_NAME="$(
+  gcloud sql instances describe "$CLOUD_SQL_INSTANCE" \
+    --format='value(connectionName)' --project="$GCP_PROJECT_ID"
+)"
+./scripts/render-gke-manifests.sh | kubectl apply --server-side -f -
+
+echo "Deployment successfully applied! Point DNS A record of $GKE_HOSTNAME (DuckDNS) to the IP address above."
