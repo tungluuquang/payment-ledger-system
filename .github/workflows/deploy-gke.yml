@@ -67,7 +67,7 @@ jobs:
       - name: Render and deploy
         run: |
           ./scripts/render-gke-manifests.sh >/tmp/payment-ledger-gke.yaml
-          kubectl apply --server-side --field-manager=github-actions -f /tmp/payment-ledger-gke.yaml
+          kubectl apply --server-side --field-manager=github-actions --force-conflicts -f /tmp/payment-ledger-gke.yaml
 
       - name: Verify rollouts
         run: |
